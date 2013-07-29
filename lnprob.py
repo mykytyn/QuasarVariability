@@ -25,5 +25,8 @@ def ln_like_array(g,r,sr2,sg2,a,b,s2):
     """
     return ln_1d_gauss(g,a*r+b,sr2+sg2+s2)
 
+def ln_prob(params,g,r,sg,sr):
+    a,b,s = params
+    #g,r,sg,sg = data
 
-
+    return np.sum(ln_like_array(g,r,sr**2,sg**2,a,b,s**2))
