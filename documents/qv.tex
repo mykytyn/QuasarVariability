@@ -1,7 +1,53 @@
+% This file is part of the QuasarVariability project
+% Copyright 2013 David W. Hogg (NYU) and any other authors.
+
 \documentclass[letterpaper,12pt]{article}
+
+\newcommand{\given}{\,|\,}
+\newcommand{\transpose}[1]{{#1}^{\mathsf{T}}}
 
 \begin{document}
 
-Hello World!
+\section{The model}
+
+In our language, a ``model'' is a likelihood function---a function
+equal to or proportional to a pdf in data space for the data given
+parameters---and a set of prior pdfs for some or all of those
+parameters.  To generate the likelihood function used here, we make
+use of a Gaussian Process formulation for stochastic quasar
+variability; this formulation can encompass damped random walk models
+and also power-law structure functions (and indeed many other kinds of
+continuous stochastic variability).  The unusual aspect of the model
+we use here is that the Gaussian Process is not in any particular band
+but instead in an ersatz fiducial band which can be scaled and shifted
+onto the particular bands.  This permits simultaneous treatment of
+multiple bands, even when the multiple bands are not observed
+simultaneously.  The key idea is that the ersatz band is a latent
+variable---it is never directly observed; only the scaled and shifted
+versions are observed, and even these are only observed in the
+presence of substantial measurement noise.
+
+In the damped random walk model, without loss of generality (the real
+photometric measurements will be scaled and shifted to match the
+latent ersatz basis), the ersatz lightcurve can be described with a
+zero-mean and unit-characteristic-variance Gaussian Process.  That is,
+the pdf for a set of $N$ ersatz ``magnitudes'' $m_n$ that are
+instantiated at a set of $N$ times $t_n$ is just
+\begin{eqnarray}
+p(m) &=& N(m\given 0,V)
+\\
+\transpose{m} &\equiv& [m_1, m_2, \cdots , m_N]
+\\
+V_{nn'} &=& \exp -\frac{|t_n - t_n'|}{\tau}
+\quad ,
+\end{eqnarray}
+where $N(x\given\mu,V)$ is the multivariate normal for column vector
+$x$ given mean vector $\mu$ and general variance tensor $V$, $m$ is
+the $N$-dimensional column vector made up of all the latent ersatz
+magnitudes, $0$ is not zero but the $N$-dimensional generalization of
+zero, $V$ is a $N\times N$ symmetric positive definite matrix with
+elements $V_{nn'}$, and $\tau$ is the decorrelation time of the random
+walk.  Some draws from this kind of Gaussian Process are shown in
+\figurename~[HOGG].
 
 \end{document}
