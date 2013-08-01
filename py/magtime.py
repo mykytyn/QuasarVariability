@@ -9,11 +9,14 @@ hdulist = pyfits.open('quasar.fits')
 table = hdulist[1].data
 print table.columns
 
-print table['headobjid'][::1000]
-#run6417
-mask = table['headobjid']==588015509825912905
-table = table[mask]
-print len(table)
+ids = np.unique(table['headobjid'])
+f = open('ids.txt','w')
+for x in ids:
+    f.write(str(x)+'\n')
+f.close()
+#mask = table['headobjid']==588015509825912905
+#table = table[mask]
+#print len(table)
 assert(False)
 i_band = table['psfMag_i']
 i_band_err = table['psfMagerr_i']

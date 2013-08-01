@@ -21,3 +21,7 @@ def ln_likelihood(r,sr2,mean_r,sr2_meanr):
     Output: Log-likelihood
     """
     return ln_1d_gauss(r,mean_r,sr2+sr2_meanr)
+
+def tot_likelihood(params, r, sr2):
+    mean_r,sr2_meanr=params
+    return np.sum(ln_likelihood(r,sr2,mean_r,sr2_meanr))

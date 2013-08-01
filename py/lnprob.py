@@ -12,10 +12,11 @@ def ln_1d_gauss(x,m,sigmasqr):
     A = 1./np.sqrt(sigmasqr*2*np.pi)
     return np.log(A)-(1/2.)*(x-m)**2/(sigmasqr)
 
-def ln_like_array(g,r,sr2,sg2,a,b,s2):
+def ln_like_array(g,r,sr2,sg2,a,b,s2,r_mean):
     """
     Inputs: g is the g magnitude
             r is the r magnitude
+            r_mean is the r mean
             sr2 is the variance of r
             sg2 is the variance of g
             a is a scale factor (power)
@@ -23,10 +24,10 @@ def ln_like_array(g,r,sr2,sg2,a,b,s2):
             s2 is a jitter in variance units
     Output: Log-likelihood
     """
-    return ln_1d_gauss(g,a*r+b,sr2+sg2+s2)
+    return ln_1d_gauss(g,a*(r-r_mean)+b,a*a*sr2+sg2+s2)
 
 def ln_prob(params,g,r,sg,sr):
-    a,b,s = params
+    a,b,s,r_mean = params
     #g,r,sg,sg = data
 
-    return np.sum(ln_like_array(g,r,sr**2,sg**2,a,b,s**2))
+    return np.sum(ln_like_array(g,r,sr**2,sg**2,a,b,s**2,r_mean))
