@@ -13,7 +13,10 @@
 In our language, a ``model'' is a likelihood function---a function
 equal to or proportional to a pdf in data space for the data given
 parameters---and a set of prior pdfs for some or all of those
-parameters.  To generate the likelihood function used here, we make
+parameters.  For this project, the ``data'' are a set of magnitudes
+
+
+To generate the likelihood function we use here, we make
 use of a Gaussian Process formulation for stochastic quasar
 variability; this formulation can encompass damped random walk models
 and also power-law structure functions (and indeed many other kinds of
@@ -31,20 +34,20 @@ In the damped random walk model, without loss of generality (the real
 photometric measurements will be scaled and shifted to match the
 latent ersatz basis), the ersatz lightcurve can be described with a
 zero-mean and unit-characteristic-variance Gaussian Process.  That is,
-the pdf for a set of $N$ ersatz ``magnitudes'' $m_n$ that are
+the pdf for a set of $N$ ersatz ``magnitudes'' $q_n$ that are
 instantiated at a set of $N$ times $t_n$ is just
 \begin{eqnarray}
-p(m) &=& N(m\given 0,V)
+p(q) &=& N(q\given 0,V)
 \\
-\transpose{m} &\equiv& [m_1, m_2, \cdots , m_N]
+\transpose{q} &\equiv& [q_1, q_2, \cdots , q_N]
 \\
 V_{nn'} &=& \exp -\frac{|t_n - t_{n'}|}{\tau}
 \quad ,
 \end{eqnarray}
 where $N(x\given\mu,V)$ is the multivariate normal for column vector
-$x$ given mean vector $\mu$ and general variance tensor $V$, $m$ is
+$x$ given mean vector $\mu$ and general variance tensor $V$, $q$ is
 the $N$-dimensional column vector made up of all the latent ersatz
-magnitudes, $0$ is not zero but the $N$-dimensional generalization of
+magnitudes $q_n$, $0$ is not zero but the $N$-dimensional generalization of
 zero, $V$ is a $N\times N$ symmetric positive definite matrix with
 elements $V_{nn'}$, and $\tau$ is the decorrelation time of the random
 walk.  Some draws from this kind of Gaussian Process are shown in
