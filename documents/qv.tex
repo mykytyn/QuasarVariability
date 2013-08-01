@@ -67,4 +67,18 @@ decorrelation time of the random walk.  Some draws from this kind of
 Gaussian Process are shown in \figurename~[HOGG]; it is a model of
 stochastic variation with controlled correlation properties.
 
+The pdf for an individual measurement $m_n$ given its meta data and a
+value for the corresponding latent ersatz magnitude $q_n$ is found by
+shifting and scaling the latent magnitude and adding Gaussian noise.
+This makes a single-datum likelihood
+\begin{eqnarray}
+p(m_n\given q_n,b_n=b,\sigma_n^2) &=& N(m_n\given a_b * q_n + \mu_b, \sigma_n^2)
+\quad ,
+\end{eqnarray}
+where $a_b$ is a scale, $\mu_b$ is an offset or mean, and there is one
+$a_b$ and one $\mu_b$ for each value of the bandpass $b$.  Because
+everything is Gaussian, the latent ersatz magnitudes never have to be
+explicitly inferred individually; they can all be marginalized out
+analytically.
+
 \end{document}
