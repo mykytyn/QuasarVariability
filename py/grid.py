@@ -34,15 +34,16 @@ mjd_g = table['mjd_g']
 r_band = table['psfMag_r']
 r_band_err = table['psfMagerr_r']
 mjd_r = table['mjd_r']
+r_mean = np.mean(r_band)
 print r_band_err,g_band_err
 
 # set up arrays
-bmin = -.995
-bmax = 1.
-amin = 0.005
-amax = 2.
-astep = .001
-bstep = .001
+bmin = 17.995
+bmax = 19.
+amin = 1.005
+amax = 1.2
+astep = .0005
+bstep = .0005
 bs = np.arange(bmin,bmax,bstep)
 az = np.arange(amin,amax,astep)
 aa,bb = np.meshgrid(az,bs)
@@ -54,16 +55,16 @@ ni,nj = aa.shape
 print ni,nj
 for i in range(ni):
     for j in range(nj):
-        pars = np.array([aa[i,j],bb[i,j],s])
+        pars = np.array([aa[i,j],bb[i,j],s,r_mean])
         probs[i,j] = ln_prob(pars,g_band,r_band,g_band_err,r_band_err)
 print probs
 plt.clf()
 vmax = np.max(probs)
-vmin = vmax-100.
+vmin = vmax-10.
 plt.imshow(probs,cmap='gray',interpolation='nearest',origin='lower',
            extent=[amin,amax,bmin,bmax], vmax=vmax,vmin=vmin,aspect='auto')
 plt.colorbar()
-plt.savefig('grid2.png')
+plt.savefig('newgrid2.png')
 loc = np.argmax(probs)
 bloc,aloc = np.unravel_index(loc,probs.shape)
 print aloc,bloc
@@ -75,9 +76,9 @@ plt.clf()
 
 plt.errorbar(mjd_g,g_band,marker='.',ls='none',color='g')
 plt.errorbar(mjd_r,r_band,marker='.',ls='none',color='r')
-plt.errorbar(mjd_g,(g_band-b)/a,marker='.',ls='none',color='k')
+plt.errorbar(mjd_g,(g_band-b)/a+r_mean,marker='.',ls='none',color='k')
 plt.ylim(18.0,20.5)
-plt.savefig('bestgrid2.png')
+plt.savefig('newbestgrid2.png')
 
 
 
