@@ -30,20 +30,17 @@ mjd_r = table['mjd_r']
 ndim = 3
 args = g_band,r_band,g_band_err,r_band_err
 
-nwalkers = 250
+nwalkers = 100
 p0 = []
 for i in range(nwalkers):
     p0.append([random.uniform(.5,1.5),random.uniform(-.5,.5),random.uniform(-.5,.5)])
 
-print p0
 
 sampler = emcee.EnsembleSampler(nwalkers,ndim,ln_prob,args=[g_band,r_band,g_band_err,r_band_err])
 
 pos,prob,state = sampler.run_mcmc(p0,100)
 sampler.reset()
-print pos
 pos,prob,state = sampler.run_mcmc(pos,1000)
-print pos
 
 for i in range(ndim):
     plt.clf()
