@@ -2,6 +2,7 @@ import numpy as np
 import random
 import pyfits as pyf
 import matplotlib.pyplot as plt
+from QuasarVariability import QuasarVariability
 
 def ln_1d_gauss(x,m,sigmasqr):
     """
@@ -166,6 +167,28 @@ def plot_mag(band,obj):
     plt.ylabel('%s'%(band))
     #plt.legend(loc='upper left',prop={'size':8})
     
+def plot_mag_curve(band,obj):
+    mean,a=meshgrid(10., 30., 0., 1., .1, .001, band, obj)
+    tau = 200.
+    testQ= QuasarVariability(a,tau,mean)
+    timegrid=np.arange(51000,54500,20)
+    testMags=get_mag(band,obj)
+    testTimes=get_time(band,obj)
+    testSigmas=get_mag_err(band,obj)
+    pmean,Vpp=testQ.get_conditional_mean_and_variance(timegrid,testMags,testTimes,testSigmas)
+    pmean=np.array(pmean).reshape(timegrid.shape)
+    psig=np.sqrt(np.diag(np.array(Vpp)))
+    plt.errorbar(testTimes, testMags, yerr=testSigmas, marker='.',color='black', ls='none', label='%s'%(band))
+    plt.plot(timegrid,pmean,color='black',alpha=0.5,linewidth=2)
+    plt.plot(timegrid,pmean+psig,color='black',linewidth=.1,alpha=0.5)
+    plt.plot(timegrid,pmean-psig, color='black',linewidth=.1,alpha=0.5)
+    plt.ylim(mean-0.75,mean+0.75)
+    plt.ylabel('%s'%(band))
+    for i in range(4):
+        maggrid = testQ.get_conditional_sample(timegrid,testMags,testTimes,testSigmas)
+        maggrid = np.array(maggrid).reshape(timegrid.shape)
+        plt.plot(timegrid,maggrid,'k-',alpha=0.25)
+
 def missing_points(band,obj):
     """
     Inputs: 
