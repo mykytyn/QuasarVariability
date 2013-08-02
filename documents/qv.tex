@@ -72,13 +72,39 @@ value for the corresponding latent ersatz magnitude $q_n$ is found by
 shifting and scaling the latent magnitude and adding Gaussian noise.
 This makes a single-datum likelihood
 \begin{eqnarray}
-p(m_n\given q_n,b_n=b,\sigma_n^2) &=& N(m_n\given a_b * q_n + \mu_b, \sigma_n^2)
+p(m_n\given q_n,b_n,\sigma_n^2) &=& N(m_n\given a(b_n) * q_n + \mu(b_n), \sigma_n^2)
 \quad ,
 \end{eqnarray}
-where $a_b$ is a scale, $\mu_b$ is an offset or mean, and there is one
-$a_b$ and one $\mu_b$ for each value of the bandpass $b$.  Because
-everything is Gaussian, the latent ersatz magnitudes never have to be
-explicitly inferred individually; they can all be marginalized out
-analytically.
+where $a(b)$ is a scale appropriate to photometric bandpass $b$,
+$\mu(b)$ is an offset or mean appropriate to bandpass $b$, and there
+is one value of $a(b)$ and one value of $\mu(b)$ for each possible
+value of the bandpass $b$.  Because everything is Gaussian, the latent
+ersatz magnitudes never have to be explicitly inferred individually;
+they can all be marginalized out analytically.
+
+This marginalization (to remove all explicit mention of the implicit
+variable $q$) leads to the following very simple covariance function
+for the data:
+\begin{eqnarray}
+p(m) &=& N(m\given \mu,V)
+\\
+\transpose{m} &\equiv& [m_1, m_2, \cdots , m_N]
+\\
+\transpose{\mu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_N)]
+\\
+V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}|}{\tau} + \sigma_n^2\,\delta_{nn'}
+\quad ,
+\end{eqnarray}
+where $m$ is a column vector of all the observations (from all bands),
+$\mu$ is a column vector of all the means, with each mean value in the
+vector drawn from the list of five means $\mu(b)$ but appropriately
+for the data point in question, the rows and columns of the variance
+tensor $V$ have been multiplied by the scales $a(b)$ appropriate for
+the relevant observations, and there is an additional term
+$\sigma^2\,\delta{nn'}$ added only to the diagonal elements to model
+the measurement noise variance.  This model is very rigid, in that the
+bandpasses are tightly tied to one another, but also very flexible, in
+that the quasar can have any mean color and that color can change
+(deterministically) as it brightens (as is observed [HOGG CITE]).
 
 \end{document}
