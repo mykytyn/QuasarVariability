@@ -31,7 +31,7 @@ uncertainties of known (though heteroskedastic) variance.
 
 To generate the likelihood function we use here, we make
 use of a Gaussian Process formulation for stochastic quasar
-variability; this formulation can encompass damped random walk models
+variability; this formulation can encompass damped random walks
 and also power-law structure functions (and indeed many other kinds of
 continuous stochastic variability).  The unusual aspect of the model
 we use here is that the Gaussian Process is not in any particular band
@@ -64,8 +64,8 @@ magnitudes $q_n$, $0$ is not zero but the $N$-dimensional
 generalization of zero, $V$ is a $N\times N$ symmetric positive
 definite matrix with elements $V_{nn'}$, and $\tau$ is the
 decorrelation time of the random walk.  Some draws from this kind of
-Gaussian Process are shown in \figurename~[HOGG]; it is a model of
-stochastic variation with controlled correlation properties.
+Gaussian Process are shown in \figurename~\ref{fig:qdraws}; it is a
+model of stochastic variation with controlled correlation properties.
 
 The pdf for an individual measurement $m_n$ given its meta data and a
 value for the corresponding latent ersatz magnitude $q_n$ is found by
@@ -82,17 +82,19 @@ value of the bandpass $b$.  Because everything is Gaussian, the latent
 ersatz magnitudes never have to be explicitly inferred individually;
 they can all be marginalized out analytically.
 
-This marginalization (to remove all explicit mention of the implicit
+This marginalization (to remove all explicit mention of the ersatz
 variable $q$) leads to the following very simple covariance function
 for the data:
 \begin{eqnarray}
 p(m) &=& N(m\given \mu,V)
+\label{eq:likestart}
 \\
 \transpose{m} &\equiv& [m_1, m_2, \cdots , m_N]
 \\
 \transpose{\mu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_N)]
 \\
 V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}|}{\tau} + \sigma_n^2\,\delta_{nn'}
+\label{eq:likeend}
 \quad ,
 \end{eqnarray}
 where $m$ is a column vector of all the observations (from all bands),
@@ -101,10 +103,75 @@ vector drawn from the list of five means $\mu(b)$ but appropriately
 for the data point in question, the rows and columns of the variance
 tensor $V$ have been multiplied by the scales $a(b)$ appropriate for
 the relevant observations, and there is an additional term
-$\sigma^2\,\delta{nn'}$ added only to the diagonal elements to model
-the measurement noise variance.  This model is very rigid, in that the
+$\sigma_n^2$ added only to the diagonal elements to model the
+measurement noise variance.  This model is very rigid, in that the
 bandpasses are tightly tied to one another, but also very flexible, in
 that the quasar can have any mean color and that color can change
 (deterministically) as it brightens (as is observed [HOGG CITE]).
+Some draws from this multi-band damped-random-walk Gaussian Process
+are shown in \figurename~\ref{fig:mdraws}
+
+The equations~(\ref{eq:likestart}) through (\ref{eq:likeend})
+provide a method for computing the probability of any data set (any
+set of observed magnitudes $m_n$) given meta data (times $t_n$,
+bandpasses $b_n$, observational uncertainties $\sigma_n^2$) and
+parameters $a(b)$ (five numbers), $\mu(b)$ (five numbers), and $\tau$.
+The probability of the observed data given parameters is the
+\emph{likelihood function}.  Thus we can bring the whole machinery of
+probabilistic inference (likelihood optimization, posterior sampling)
+to the problem.  Also, because both the process is Gaussian and the
+noise is (assumed to be) Gaussian, it is trivial to make prior draws
+of expected data, and also make \emph{conditional predictions} for new
+data $\tilde{m}_k$ at $K$ times $t_k$ taken through bandpasses $b_k$ with
+expected uncertainties $\sigma_k^2$ given the data in hand (which are
+at $N$ times $t_n$):
+\begin{eqnarray}
+p(\tilde{m}|m) &=& N(\tilde{m}|\tilde{\mu},\tilde{V})
+\\
+\transpose{\tilde{m}} &\equiv& [\tilde{m}_1, \tilde{m}_2, \cdots , \tilde{m}_K]
+\\
+\tilde{mu} &=& \mbox{HOGG}
+\\
+\tilde{V} &=& \mbox{HOGG}
+\quad ,
+\end{eqnarray}
+where $\tilde{m}$ is the column vector of conditional predictions,
+$\tilde{mu}$ and $\tilde{V}$ are a conditional mean vector and a
+conditional variance tensor, and the matrices [HOGG] are $K\times K$,
+$K\times N$, and $N\times N$ respectively.  These conditional
+predictions depend on the Gaussian Process parameters.  They represent
+an adjusted Gaussian Process, adjusted to ``go through'' (or at least
+near) the existing data.  We show an example of conditional
+predictions in \figurename~\ref{fig:conditional}
+
+\section{experiments}
+
+\section{discussion}
+
+%\acknowledgements
+Thank Zoubin for the tutorial!
+
+\clearpage
+\begin{figure}
+~[DM + EP]~
+\caption{Four draws from the damped random walk model for the latent
+  variable $q$.  These draws are made with $a=0.75$~mag and
+  $\tau=400$~d.\label{fig:qdraws}}
+\end{figure}
+
+\begin{figure}
+~[DM + EP]~
+\caption{Four draws from the multi-band damped random walk model in
+  the five SDSS bands.  These draws are made with $a(b)=(0.85, 0.75,
+  0.65, 0.55, 0.45)$~mag in the five bandpasses, $\mu(b)=$[DM+EP], and
+  $\tau=400$~d.  The model is rigid in the sense that the five bands
+  are all scaled replicas of one another.\label{fig:mdraws}}
+\end{figure}
+
+\begin{figure}
+~[DM + EP]~
+\caption{Example of conditional
+  prediction... [DM+EP]\label{fig:conditional}}
+\end{figure}
 
 \end{document}
