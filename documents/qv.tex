@@ -8,6 +8,7 @@
 \newcommand{\panstarrs}{\project{PanSTARRS}}
 \newcommand{\given}{\,|\,}
 \newcommand{\transpose}[1]{{#1}^{\mathsf{T}}}
+\newcommand{\inverse}[1]{{#1}^{-1}}
 
 \begin{document}
 
@@ -130,19 +131,28 @@ p(\tilde{m}|m) &=& N(\tilde{m}|\tilde{\mu},\tilde{V})
 \\
 \transpose{\tilde{m}} &\equiv& [\tilde{m}_1, \tilde{m}_2, \cdots , \tilde{m}_K]
 \\
-\tilde{mu} &=& \mbox{HOGG}
+\tilde{\mu} &=& \nu + X\cdot\inverse{V}\cdot [m - \mu]
 \\
-\tilde{V} &=& \mbox{HOGG}
+\tilde{V} &=& Y - X\cdot\inverse{V}\cdot\transpose{X}
+\\
+\transpose{\nu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_K)]
+\\
+X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n|}{\tau}
+\\
+Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}|}{\tau} + \sigma_k^2\,\delta_{kk'}
 \quad ,
 \end{eqnarray}
 where $\tilde{m}$ is the column vector of conditional predictions,
-$\tilde{mu}$ and $\tilde{V}$ are a conditional mean vector and a
-conditional variance tensor, and the matrices [HOGG] are $K\times K$,
-$K\times N$, and $N\times N$ respectively.  These conditional
-predictions depend on the Gaussian Process parameters.  They represent
-an adjusted Gaussian Process, adjusted to ``go through'' (or at least
-near) the existing data.  We show an example of conditional
-predictions in \figurename~\ref{fig:conditional}
+$\tilde{\mu}$ and $\tilde{V}$ are a conditional mean vector and a
+conditional variance tensor, (temporary) mean vector $\nu$ is
+$K$-dimensional, and the matrices $V$, $X$, and $Y$ are $N\times N$,
+$K\times N$, and $K\times K$ respectively.  Vectors $m$ and $\mu$ and
+matrix $V$ are defined above in equations~(\ref{eq:likestart}) through
+(\ref{eq:likeend}).  These conditional predictions depend on the
+Gaussian Process parameters.  They represent an adjusted Gaussian
+Process, adjusted to ``go through'' (or at least near) the existing
+data.  We show an example of conditional predictions in
+\figurename~\ref{fig:conditional}
 
 \section{experiments}
 
