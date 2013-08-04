@@ -1,16 +1,55 @@
 % This file is part of the QuasarVariability project
 % Copyright 2013 David W. Hogg (NYU) and any other authors.
 
-\documentclass[letterpaper,12pt]{article}
+\documentclass[letterpaper,12pt,preprint]{aastex}
 
 \newcommand{\project}[1]{\textsl{#1}}
 \newcommand{\sdss}{\project{SDSS}}
+\newcommand{\lsst}{\project{LSST}}
+\newcommand{\ptf}{\project{PTF}}
 \newcommand{\panstarrs}{\project{PanSTARRS}}
 \newcommand{\given}{\,|\,}
 \newcommand{\transpose}[1]{{#1}^{\mathsf{T}}}
 \newcommand{\inverse}[1]{{#1}^{-1}}
 
 \begin{document}
+
+\title{Probabilistic models for heterogenous multi-band multi-epoch
+  photometry of time-variable quasars.}
+\author{DM, EP, DWH, HWR, NH, DFM, others}
+
+\begin{abstract}
+Recent projects have built likelihood functions for stochastically
+variable quasar light-curves based on Gaussian Processes.  There are
+successful models based on damped random walks and also power-law
+structure functions, but all of the models effectively assume that the
+data are coming from a single photometric bandpass.  Here we generalize
+these models so that they can accept data from multiple different
+photometric bandpasses, whether or not the data taken through the
+different bandpasses are taken simultaneously (as in \sdss) or with
+large time lags (as with \panstarrs\ and \lsst).  The model naturally
+captures luminosity-correlated color changes.  We test the models on
+data from \sdss\ \project{Stripe 82}, in which multi-epoch data was
+taken effectively simultaneously in five photometric bandpasses, and
+we also test the models on data subsamples in which there are no
+simultaneous measurements.  We find that we can infer
+structure-function parameters in either case, and that the model can
+be used to separate stars and quasars.  We also show that we can infer
+time-dependent (and mean) quasar colors, even when a source shows
+substantial variability but has not ever been measured simultaneously
+in different bands.
+\end{abstract}
+
+\keywords{
+  this ---
+  that ---
+  quasars
+}
+
+\section{Introduction}
+
+Why what has been done with \sdss\ and \ptf\ data won't be sufficient
+for \panstarrs\ and \lsst.
 
 \section{The model}
 
@@ -154,12 +193,17 @@ Process, adjusted to ``go through'' (or at least near) the existing
 data.  We show an example of conditional predictions in
 \figurename~\ref{fig:conditional}
 
-\section{experiments}
+\section{Experiments}
 
-\section{discussion}
+\section{Discussion}
+
+...Promise for \lsst...
+
+...Caveats related to reverberation mapping...
 
 %\acknowledgements
-Thank Zoubin for the tutorial!
+It is a pleasure to thank Zoubin Ghahramani (Cambridge) for posting a
+very valuable Gaussian Process tutorial online.
 
 \clearpage
 \begin{figure}
