@@ -60,9 +60,31 @@ This paper looks at the time sensitive effects of the fitting and also considers
 Brewer, 2013. (personal communication):
 Brewer uses the Gaussian Process to measure time delays in gravitationally lensed quasars. The data used for this Gaussian Process is from all images, not just one image at a time. The structure of the covariance matrix varies with parameters. Generally, the elements of the covariance matrix are given by a function of the form:
 \begin{eqnarray}
-Cov_{ij}=\sigma^2 exp[\frac{|t_i-t_j|}{L}],
+C_{ij}=\sigma^2 exp\left[-\frac{|t_i-t_j|}{L}\right],
 \end{eqnarray}
 where $\sigma$ and $L$ are functions of time for quasar variability or a microlensing signal specific to the image. For microslensing signals, the exponential term is raised to a power $\alpha$, which is a smoothness parameter for microlensing signals. Though it is not explicityly stated, I assume that the images are taken in certain bandpasses, from which all magnitudes are combined and used as one vector of measured magnitudes. 
+
+Schmidt et al. 2010 - ``Selecting Quasars by their Intrinsic Variability'':
+This method for selecting quasars is carried out by parametrizing single-band variability using a power-law model for the light-curve structure function with an amplitude, $A$ and a power law index, $\gamma$. The power-law model for the structure function is:
+\begin{eqnarray}
+V_{mod}(\Delta t_{i,j}|A,\gamma)=A\left(\frac{\Delta t_{i,j,}}{1 yr}\right)^{\gamma}.
+\end {eqnarray}
+The power-law model is fitted with given data where $\Delta m_{i,j,}$ is the difference in magnitude of light-curve points and $\Delta t_{i.j}$ is the separation between the magnitudes. The likliehood function is then:
+\begin{eqnarray}
+{\cal L}(A|\gamma)= \prod_{i,j} L_{i,j}, 
+\end{eqnarray}
+and the elements $L_{i,j}$ are
+\begin{eqnarray}
+L_{i,j}=\frac{1}{\sqrt{2\pi V_{eff,ij}^2}}exp\left(-\frac{\Delta m_{i,j}^2}{2V_{eff,ij}^2} \right).
+\end{eqnarray}
+The effective, observed variability is
+\begin{eqnarray}
+V_{eff,ij}^2=V_{mod}(\Delta t_{ij}|A,\gamma)^2+ (\sigma_i^2 + \sigma_j^2), 
+\end{eqnarray} 
+where $\sigma_i$ and $\sigma_j$ are the photometric errors. They utilize Stripe82 data to select extensive, complete and pure quasar samples.
+
+
+
 \section{The model}
 
 In our language, a ``model'' is a likelihood function---a function
