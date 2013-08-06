@@ -8,7 +8,7 @@ import pyfits
 
 bands_dict = {0:'u',1:'g',2:'r',3:'i',4:'z'}
 
-def make_prior_plots(testQ,timegrid,bands,pmean,psig,num_samps=8):
+def make_prior_plots(testQ,timegrid,bands,pmean,psig,means,num_samps=8):
     maggrids = []
     plt.subplots_adjust(hspace=0,top=.95)
     matplotlib.rc('xtick',labelsize=6)
@@ -33,8 +33,9 @@ def make_prior_plots(testQ,timegrid,bands,pmean,psig,num_samps=8):
             plt.plot(btimegrid,maggrid[mask],'k-',alpha=0.25)
         plt.setp(ax.get_xticklabels(),visible=(i==4))
         plt.ylabel('%s' % bands_dict[i])
+        plt.ylim(means[i]-.75,means[i]+.75)
 
-def make_posterior_plots(testQ,test_times,test_mags,test_bands,test_sigmas,timegrid,bands,pmean,psig,num_samps=8):
+def make_posterior_plots(testQ,test_times,test_mags,test_bands,test_sigmas,timegrid,bands,pmean,psig,means,num_samps=8):
     maggrids = []
     plt.subplots_adjust(hspace=0,top=.95)
     matplotlib.rc('xtick',labelsize=8)
@@ -62,19 +63,25 @@ def make_posterior_plots(testQ,test_times,test_mags,test_bands,test_sigmas,timeg
             maggrid=maggrids[j]
             plt.plot(btimegrid,maggrid[mask],'k-',alpha=0.25)
         plt.setp(ax.get_xticklabels(),visible=(i==4))
+        plt.ylim(means[i]-.75,means[i]+.75)
 
-#a = np.array([.75,.85,.95,1.05,1.15])
 tau = 200.
-#mean = np.array([19.5,20.5,21.5,22.5,23.5])
 
-
+bandnames = ['u','g','r','i','z']
 obj = 588015509825912905
 dt = 10.
-timegrid = np.arange(0.5*dt+51500,54500,dt)
-print len(timegrid)
-bands = np.zeros_like(timegrid)
-bands = np.array([np.random.randint(5) for x in bands])
-bandnames = ['u','g','r','i','z']
+fulltimegrid = []
+fullbands = []
+
+for i in range(5):
+    timegrid = np.arange(0.5*dt+51500,54500,dt)
+    bands = [i]*len(timegrid)
+    fulltimegrid.extend(timegrid)
+    fullbands.extend(bands)
+
+timegrid = np.array(fulltimegrid)
+bands = np.array(fullbands)
+
 means = []
 amps = []
 for name in bandnames:
@@ -92,8 +99,8 @@ pmean=testQ.get_mean_vector(timegrid,bands)
 Vpp =testQ.get_variance_tensor(timegrid,bands)
 pmean=np.array(pmean).reshape(timegrid.shape)
 psig=np.sqrt(np.diag(np.array(Vpp)))
-make_prior_plots(testQ,timegrid,bands,pmean,psig)
-plt.savefig("test_prior.png")
+make_prior_plots(testQ,timegrid,bands,pmean,psig,means)
+plt.savefig("test_prior2.png")
 
 hdulist = pyfits.open('quasar.fits')
 table = hdulist[1].data
@@ -127,5 +134,5 @@ pmean,Vpp=testQ.get_conditional_mean_and_variance(timegrid, bands, testMags, tes
                                                   testBands, testSigmas)
 pmean=np.array(pmean).reshape(timegrid.shape)
 psig=np.sqrt(np.diag(np.array(Vpp)))
-make_posterior_plots(testQ,testTimes,testMags,testBands,testSigmas,timegrid,bands,pmean,psig)
-plt.savefig("test_posterior.png")
+make_posterior_plots(testQ,testTimes,testMags,testBands,testSigmas,timegrid,bands,pmean,psig,means)
+plt.savefig("test_posterior2.png")
