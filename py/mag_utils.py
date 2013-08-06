@@ -3,6 +3,7 @@ import random
 import pyfits as pyf
 import matplotlib.pyplot as plt
 from QuasarVariability import QuasarVariability
+import random
 
 def ln_1d_gauss(x,m,sigmasqr):
     """
@@ -63,7 +64,7 @@ def get_time(band,obj):
     Output: mjd times for given band and obj
     """
     table=opentable('quasar',obj)
-    return table['mjd_%s'%(band)]
+    return list(table['mjd_%s'%(band)])
 
 def meshgrid(meanmin,maxmin, sigmamin, sigmamax, meanstep, sigmastep, band, obj):
     """
@@ -158,6 +159,7 @@ def plot_mag(band,obj):
     mag=get_mag(band,obj)
     mag_err=get_mag_err(band,obj)
     time=get_time(band,obj)
+    print sorted(time),len(time)
     plt.errorbar(time, mag, yerr=mag_err, marker='.',color='black', ls='none', label='%s'%(band))
     band_lines=meshgrid(10., 30., 0., 1., .1, .001, band, obj)
     plt.axhline(y=band_lines[0],color='black',alpha=0.5,linewidth=2)
@@ -207,3 +209,33 @@ def missing_points(band,obj):
         if m < ymin:
             print m
             plt.plot(t,ymin+0.05, marker='v',markerfacecolor='gray', mew=0,alpha=0.5)
+
+def mock_panstarrs(obj,time_step):
+    mjd=get_time('u',obj)
+    keep_this_data={}
+    print mjd[0]
+    for i in np.arange(sorted(mjd)[0],sorted(mjd)[len(mjd)-1],time_step):
+        bands={'u': 0, 'g': 1, 'r': 2, 'i':3, 'z':4}
+        data_per_interval={}
+        for band in bands:
+            rand_time=get_time(band,obj)
+            for time in rand_time:
+                if i < time < i+time_step:
+                    #print i, i+time_step, time
+                    data_per_interval[time]=band
+            else:
+                print i, i+time_step, 'no data'
+        if len(data_per_interval) > 0:
+            print data_per_interval.keys(), len(data_per_interval)
+            data_time=random.choice(data_per_interval.keys())
+            #data_time=data_per_interval.keys()[data_time]
+            data_band=data_per_interval[data_time]
+            index=get_time(data_band,obj).index(data_time)
+            data_mag=get_mag(data_band, obj)[index]
+            data_magerr=get_mag_err(data_band,obj)[index]
+            values=data_time,data_mag,data_magerr
+            print values
+            keep_this_data[values]=data_band
+
+    return keep_this_data
+    
