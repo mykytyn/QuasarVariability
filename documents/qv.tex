@@ -57,8 +57,12 @@ Zu, et. al. 2012 - ``Is Quasar Optical Variability a Damped Random Walk'':
 This paper looks at the time sensitive effects of the fitting and also considers some modifications. They also use a standard covariance model, but change it at small time scales in a piecewise manner. The data they used was from OGLE, and was only in one band
 
 
-Brewer, 2013. (personal communication)- Brewer uses the Gaussian Process to measure time delays in gravitationally lensed quasars.
-
+Brewer, 2013. (personal communication):
+Brewer uses the Gaussian Process to measure time delays in gravitationally lensed quasars. The data used for this Gaussian Process is from all images, not just one image at a time. The structure of the covariance matrix varies with parameters. Generally, the elements of the covariance matrix are given by a function of the form:
+\begin{eqnarray}
+Cov_{ij}=\sigma^2 exp[\frac{|t_i-t_j|}{L}],
+\end{eqnarray}
+where $\sigma$ and $L$ are functions of time for quasar variability or a microlensing signal specific to the image. For microslensing signals, the exponential term is raised to a power $\alpha$, which is a smoothness parameter for microlensing signals. Though it is not explicityly stated, I assume that the images are taken in certain bandpasses, from which all magnitudes are combined and used as one vector of measured magnitudes. 
 \section{The model}
 
 In our language, a ``model'' is a likelihood function---a function
