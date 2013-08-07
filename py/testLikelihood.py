@@ -4,7 +4,7 @@ if __name__ == '__main__':
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pyfits
-import mag_utils
+import utils
 import QuasarVariability
 
 
@@ -23,11 +23,11 @@ def graph_prior_and_posterior(data, prefix='quasar'):
     initial_time = np.min(times)-25
     final_time = np.max(times)+25
 
-    timegrid, bandsgrid = mag_utils.make_band_time_grid(initial_time,
+    timegrid, bandsgrid = utils.make_band_time_grid(initial_time,
                                                         final_time, dt,
                                                         bandlist)
 
-    means, amps = mag_utils.grid_search_all_bands(mags, sigmas, bandsnum)
+    means, amps = utils.grid_search_all_bands(mags, sigmas, bandsnum)
     print means, amps
     means = np.array(means)
     amps = np.array(amps)
@@ -39,7 +39,7 @@ def graph_prior_and_posterior(data, prefix='quasar'):
     Vpp = quasar.get_variance_tensor(timegrid, bandsgrid)
     pmean = np.array(pmean).reshape(timegrid.shape)
     psig = np.sqrt(np.diag(np.array(Vpp)))
-    mag_utils.make_prior_plots(quasar, timegrid, bandsgrid, pmean, psig,
+    utils.make_prior_plots(quasar, timegrid, bandsgrid, pmean, psig,
                                means)
     plt.savefig("%s_prior.png" % prefix)
 
@@ -49,6 +49,6 @@ def graph_prior_and_posterior(data, prefix='quasar'):
                                                           bandsnum, sigmas)
     pmean = np.array(pmean).reshape(timegrid.shape)
     psig = np.sqrt(np.diag(np.array(Vpp)))
-    mag_utils.make_posterior_plots(quasar, times, mags, bandsnum, sigmas,
+    utils.make_posterior_plots(quasar, times, mags, bandsnum, sigmas,
                                    timegrid, bandsgrid, pmean, psig, means)
     plt.savefig("%s_posterior.png" % prefix)

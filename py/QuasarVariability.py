@@ -5,7 +5,7 @@ if __name__ == '__main__':
 import matplotlib.pyplot as plt
 import pyfits
 import emcee
-import mag_utils
+import utils
 import triangle
 import stripe82
 
@@ -210,10 +210,10 @@ def run_mcmc(objid, prefix):
     initialtime = np.min(times) - 50
     finaltime = np.max(times) + 50
 
-    timegrid, bandgrid = mag_utils.make_band_time_grid(initialtime, finaltime,
+    timegrid, bandgrid = utils.make_band_time_grid(initialtime, finaltime,
                                                        dt, bandnames)
 
-    means, amps = mag_utils.grid_search_all_bands(mags, sigmas, bands)
+    means, amps = utils.grid_search_all_bands(mags, sigmas, bands)
 
     init_tau = 200.
     qv = QuasarVariability(CovarianceFunction(amps, init_tau), means)
