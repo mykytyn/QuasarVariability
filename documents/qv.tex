@@ -50,52 +50,112 @@ in different bands.
 
 Why what has been done with \sdss\ and \ptf\ data won't be sufficient
 for \panstarrs\ and \lsst.
-Macleod, et. al. 2010 - ``Modeling the Time Variability of SDSS Stripe 82 Quasars as a Damped Random Walk'':
-This paper shows the high degree of agreement between the Damped Random Walk model and quasars from stripe 82. They use a standard covariance matrix of $V = a^2 \exp \left (-|\frac{\Delta t}{\tau}|\right)$. They are also more interested in overall properties of quasars, not identifying individual objects. As far as I can tell, they do multi-band fitting, but only in the sense that stripe 82 is simultaneous. 
 
-Zu, et. al. 2012 - ``Is Quasar Optical Variability a Damped Random Walk'':
-This paper looks at the time sensitive effects of the fitting and also considers some modifications. They also use a standard covariance model, but change it at small time scales in a piecewise manner. The data they used was from OGLE, and was only in one band
+Macleod, et. al. 2010 - ``Modeling the Time Variability of SDSS Stripe
+82 Quasars as a Damped Random Walk'': This paper shows the high degree
+of agreement between the Damped Random Walk model and quasars from
+stripe 82. They use a standard covariance matrix of $V = a^2 \exp
+\left (-|\frac{\Delta t}{\tau}|\right)$. They are also more interested
+in overall properties of quasars, not identifying individual
+objects. As far as I can tell, they do multi-band fitting, but only in
+the sense that stripe 82 is simultaneous.
 
+Zu, et. al. 2012 - ``Is Quasar Optical Variability a Damped Random
+Walk'': This paper looks at the time sensitive effects of the fitting
+quasar variability with damped random walks. They also use a standard
+covariance function where
+\begin{eqnarray}
+S_{DRW}=\sigma^2\exp\left(-\frac{\Delta t}{\tau}\right)
+\end{eqnarray}
+,but change it at small time scales in a piecewise
+manner to test for deviations on short and long timescales. The data
+used in this method is taken from OGLE and only occurs in the i-band.
+The results show that on short timescales of a few months, there seems
+to be a characteristic cutoff timescale and stronger correlations than
+the DRW model. On long timescales of a few years or more, the
+light-curves seem to be well-defined by the DRW model, but the
+precision becomes limited by the length of the light-curves.
 
-Brewer, 2013. (personal communication):
-Brewer uses the Gaussian Process to measure time delays in gravitationally lensed quasars. The data used for this Gaussian Process is from all images, not just one image at a time. The structure of the covariance matrix varies with parameters. Generally, the elements of the covariance matrix are given by a function of the form:
+Brewer, 2013. (personal communication): Brewer uses the Gaussian
+Process to measure time delays in gravitationally lensed quasars. The
+data used for this Gaussian Process is from all images, not just one
+image at a time. The structure of the covariance matrix varies with
+parameters. Generally, the elements of the covariance matrix are given
+by a function of the form:
 \begin{eqnarray}
 C_{ij}=\sigma^2 \exp\left[-\frac{|t_i-t_j|}{L}\right],
 \end{eqnarray}
-where $\sigma$ and $L$ are functions of time for quasar variability or a microlensing signal specific to the image. For microslensing signals, the exponential term is raised to a power $\alpha$, which is a smoothness parameter for microlensing signals. Though it is not explicityly stated, I assume that the images are taken in certain bandpasses, from which all magnitudes are combined and used as one vector of measured magnitudes. 
+where $\sigma$ and $L$ are functions of time for quasar variability or
+a microlensing signal specific to the image. For microslensing
+signals, the exponential term is raised to a power $\alpha$, which is
+a smoothness parameter for microlensing signals. Though it is not
+explicityly stated, I assume that the images are taken in certain
+bandpasses, from which all magnitudes are combined and used as one
+vector of measured magnitudes.
 
-Schmidt et al. 2010 - ``Selecting Quasars by their Intrinsic Variability'':
-This method for selecting quasars is carried out by parametrizing single-band variability using a power-law model for the light-curve structure function with an amplitude, $A$ and a power law index, $\gamma$. The power-law model for the structure function is:
+Schmidt et al. 2010 - ``Selecting Quasars by their Intrinsic
+Variability'': This method for selecting quasars is carried out by
+parametrizing single-band variability using a power-law model for the
+light-curve structure function with an amplitude, $A$ and a power law
+index, $\gamma$. The power-law model for the structure function is:
 \begin{eqnarray}
-V_{mod}(\Delta t_{i,j}|A,\gamma)=A\left(\frac{\Delta t_{i,j,}}{1 yr}\right)^{\gamma}.
+V_{mod}(\Delta t_{i,j}|A,\gamma)=A\left(\frac{\Delta t_{i,j,}}{1
+  yr}\right)^{\gamma}.
 \end {eqnarray}
-The power-law model is fitted with given data where $\Delta m_{i,j,}$ is the difference in magnitude of light-curve points and $\Delta t_{i.j}$ is the separation between the magnitudes. The likliehood function is then:
+The power-law model is fitted with given data where $\Delta m_{i,j,}$
+is the difference in magnitude of light-curve points and $\Delta
+t_{i.j}$ is the separation between the magnitudes. The likliehood
+function is then:
 \begin{eqnarray}
-{\cal L}(A|\gamma)= \prod_{i,j} L_{i,j}, 
+{\cal L}(A|\gamma)= \prod_{i,j} L_{i,j},
 \end{eqnarray}
 and the elements $L_{i,j}$ are
 \begin{eqnarray}
-L_{i,j}=\frac{1}{\sqrt{2\pi V_{eff,ij}^2}}\exp\left(-\frac{\Delta m_{i,j}^2}{2V_{eff,ij}^2} \right).
+L_{i,j}=\frac{1}{\sqrt{2\pi V_{eff,ij}^2}}\exp\left(-\frac{\Delta
+  m_{i,j}^2}{2V_{eff,ij}^2} \right).
 \end{eqnarray}
 The effective, observed variability is
 \begin{eqnarray}
-V_{eff,ij}^2=V_{mod}(\Delta t_{ij}|A,\gamma)^2+ (\sigma_i^2 + \sigma_j^2), 
+V_{eff,ij}^2=V_{mod}(\Delta t_{ij}|A,\gamma)^2+ (\sigma_i^2 +
+\sigma_j^2),
 \end{eqnarray} 
-where $\sigma_i$ and $\sigma_j$ are the photometric errors. They utilize Stripe 82 data to select extensive, complete and pure quasar samples.
+where $\sigma_i$ and $\sigma_j$ are the photometric errors. They
+utilize Stripe 82 data to select extensive, complete and pure quasar
+samples.
 
 Butler \& Bloom, 2011 - ``Optimal Time-Series Selection of Quasars'':
-Butler and Bloom present an optimal selection of potential quasars in the range of redshift, 2.5 $<$ z $<$ 3 using time series observations in a single photometric bandpass. This range of redshifts is typically difficult to use color selection methods on for identifyig quasars. Using the damped random walk model presented by Kelly et al. 2009, Butler and Bloom parametrize the quasar structure function in Stripe 82 as a function of observed brightness. The covariance matrix used is
+Butler and Bloom present an optimal selection of potential quasars in
+the range of redshift, 2.5 $<$ z $<$ 3 using time series observations
+in a single photometric bandpass. This range of redshifts is typically
+difficult to use color selection methods on for identifyig
+quasars. Using the damped random walk model presented by Kelly et
+al. 2009, Butler and Bloom parametrize the quasar structure function
+in Stripe 82 as a function of observed brightness. The covariance
+matrix used is
 \begin{eqnarray}
-C_{ij}=\sigma_i^2 \delta_{ij} + \frac{1}{2}\hat{\sigma}^2 \tau_0 \exp \left(-\frac{\tau_{ij}}{\tau_0}\right),
+C_{ij}=\sigma_i^2 \delta_{ij} + \frac{1}{2}\hat{\sigma}^2 \tau_0 \exp
+\left(-\frac{\tau_{ij}}{\tau_0}\right),
 \end{eqnarray}
-where $\sigma_i$ is the measurement uncertainty, $\tau_{ij}=t_i=t_j$ is the time between measurements, $\tau_0$ is an exponential damping timescale in units of days, and $\hat{\sigma}^2$ is the intrinsic variance between magnitude observations on timescales of about 1 day.
+where $\sigma_i$ is the measurement uncertainty, $\tau_{ij}=t_i=t_j$
+is the time between measurements, $\tau_0$ is an exponential damping
+timescale in units of days, and $\hat{\sigma}^2$ is the intrinsic
+variance between magnitude observations on timescales of about 1 day.
 
-Brewer \& Stello, 2009 - ``Gaussian Process Modeling of Asteroseismic Data'':
-Brewer \& Stello use a probabilistic model to infer the frequencies and amplitudes of stellar oscillation modes assuming there is some periodic, quasi-sinusoidal oscillation in subgiant and red giant stars. The apply a damped oscialltion to the time series of simulated data and then to real data for the red giant star $\xi$ Hydrae to recover its mode lifetime. They use a typical covariance function multilpied by a cosine term to determing the elements of the covariance matrix:
+Brewer \& Stello, 2009 - ``Gaussian Process Modeling of Asteroseismic
+Data'': Brewer \& Stello use a probabilistic model to infer the
+frequencies and amplitudes of stellar oscillation modes assuming there
+is some periodic, quasi-sinusoidal oscillation in subgiant and red
+giant stars. The apply a damped oscialltion to the time series of
+simulated data and then to real data for the red giant star $\xi$
+Hydrae to recover its mode lifetime. They use a typical covariance
+function multilpied by a cosine term to determing the elements of the
+covariance matrix:
 \begin{eqnarray}
-C(\Delta t)= A^2 \exp \left( -\frac{|\Delta t|}{\tau'}\right ) \cos (2 \pi \nu \Delta t).
+C(\Delta t)= A^2 \exp \left( -\frac{|\Delta t|}{\tau'}\right ) \cos (2
+\pi \nu \Delta t).
 \end{eqnarray}
-$A$ is the oscillation amplitude, $\nu$ is the oscillation frequency and $\tau$ is the decay timescale.
+$A$ is the oscillation amplitude, $\nu$ is the oscillation frequency
+and $\tau$ is the decay timescale.
 
 
 \section{The model}
