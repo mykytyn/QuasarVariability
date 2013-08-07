@@ -253,6 +253,41 @@ def make_posterior_plots(quasarobj, times, mags, bands, sigmas, timegrid,
         plt.setp(ax.get_xticklabels(), visible=(i == 4))
         plt.ylim(means[i] - .75, means[i] + .75)
 
+def mock_panstarrs(obj, time_step):
+    """
+    Inputs: obj: data object
+            time_step: slicing interval
+    Returns:
+             Sampled mags, times, sigmas, bands
+    """
+    times = obj.get_times()
+    start_time = np.min(times)
+    end_time = np.max(times)
+    mags = obj.get_mags()
+    sigmas = obj.get_sigmas()
+    bands = obj.get_bands()
+
+    new_mags = []
+    new_times = []
+    new_sigmas = []
+    new_bands = []
+
+    for i in np.arange(start_time, end_time, time_step):
+        mask = [times > i] & [times < i + time_step]
+        if not np.any(mask):
+            continue
+        mask_mags = mags[mask]
+        mask_times = times[mask]
+        mask_sigmas = sigmas[mask]
+        mask_bands = bands[mask]
+        samp = np.randint(len(mask_mags))
+        new_mags.append(mask_mags[samp])
+        new_times.append(mask_times[samp])
+        new_sigmas.append(mask_sigmas[samp])
+        new_bands.append(mask_bands[samp])
+
+    return new_mags, new_times, new_sigmas, new_bands
+
 
 def plot_meshgridmeanmin(meanmin, maxmin, sigmamin, sigmamax, meanstep, sigmastep, band, obj):
     """
@@ -293,6 +328,7 @@ def plot_meshgridmeanmin(meanmin, maxmin, sigmamin, sigmamax, meanstep, sigmaste
     plt.colorbar()
     plt.savefig('grid_%s_%s.png' %(band,obj))
     return 'finished plotting'
+
 
 def plot_mag(band,obj):
     """
@@ -341,6 +377,7 @@ def plot_mag_curve(band,obj):
         maggrid = np.array(maggrid).reshape(timegrid.shape)
         plt.plot(timegrid,maggrid,'k-',alpha=0.25)
 
+
 def missing_points(band,obj):
     """
     Inputs: 
@@ -360,35 +397,3 @@ def missing_points(band,obj):
         if m < ymin:
             print m
             plt.plot(t,ymin+0.05, marker='v',markerfacecolor='gray', mew=0,alpha=0.5)
-
-def mock_panstarrs(obj,time_step):
-    """
-    NOTE: NO LONGER WORKS (BUT PROBABLY EASY TO REFACTOR)
-    """
-    mjd=get_time('u',obj)
-    keep_this_data={}
-    print mjd[0]
-    for i in np.arange(sorted(mjd)[0],sorted(mjd)[len(mjd)-1],time_step):
-        bands={'u': 0, 'g': 1, 'r': 2, 'i':3, 'z':4}
-        data_per_interval={}
-        for band in bands:
-            rand_time=get_time(band,obj)
-            for time in rand_time:
-                if i < time < i+time_step:
-                    #print i, i+time_step, time
-                    data_per_interval[time]=band
-            else:
-                print i, i+time_step, 'no data'
-        if len(data_per_interval) > 0:
-            print data_per_interval.keys(), len(data_per_interval)
-            data_time=random.choice(data_per_interval.keys())
-            #data_time=data_per_interval.keys()[data_time]
-            data_band=data_per_interval[data_time]
-            index=get_time(data_band,obj).index(data_time)
-            data_mag=get_mag(data_band, obj)[index]
-            data_magerr=get_mag_err(data_band,obj)[index]
-            values=data_time,data_mag,data_magerr
-            print values
-            keep_this_data[values]=data_band
-
-    return keep_this_data
