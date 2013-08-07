@@ -157,6 +157,16 @@ C(\Delta t)= A^2 \exp \left( -\frac{|\Delta t|}{\tau'}\right ) \cos (2
 $A$ is the oscillation amplitude, $\nu$ is the oscillation frequency
 and $\tau$ is the decay timescale.
 
+Kelly et al., 2009 - ``Are the Variations in Quasar Optical Flux Driven by the Thermal Fluctuations?'':
+This paper models light curves as continuous stochastic processes which provide natural estimates for timescale and amplitude. A continuous autoregressive process where $A$, $\tau$ and $\sigma$ are free parameters is used to measure the light-cruves for data taken from the MACHO survey, PG Quasars and Seyfert galaxies. Light-curves that follow a power spectrum proportional to $1/f^2$ are suggestive of random walks and stochstic timescales. The following equations describes the autoregressive process:
+\begin{eqnarray}
+dX(t)==\frac{1}{\tau}X(t)dt + \sigma\sqrt{dt}\epsilon(t)+bdt \tau,\sigma,t > 0.
+\end{eqnarray}
+The variance for $X(t)$ is the following given $X(s)$ where s $<$ t:
+\begin{eqnarray}
+Var(X(t)|X(s))=\frac{\tau \sigma^2}{2}\left [ 1-e^\frac{-2\Delta t}{\tau}\right]. 
+\end{eqnarray}
+Only one bandpass is used in this study. (Not sure that I did this paper justice or if this is the math that we want to include from it)
 
 \section{The model}
 
