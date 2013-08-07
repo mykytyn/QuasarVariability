@@ -179,6 +179,36 @@ Var(X(t)|X(s))=\frac{\tau \sigma^2}{2}\left [ 1-e^\frac{-2\Delta
 Only one bandpass is used in this study. (Not sure that I did this
 paper justice or if this is the math that we want to include from it)
 
+Bovy, HWR, et al.(personal communication) - ``Broadband photometric
+reverberation mapping'': Data from Stripe 82 and light-curves
+downloaded from SDSS DR7 CAS are used to show that all photometry can
+be modeled as linear combinations of the light-curves shifted by
+delays due to the delayed response of emission lines to the continuum flux.
+Using the g-band with a broad emission line and the r-band with a
+continuum flux only, where the r-band flux varies linearly with the
+g-band, covariance functions for the contiuum model can be written as:
+\begin{eqnarray}
+C^{cc}_{rr}(\Delta t)=s^2C^{cc}_{gg}(\Delta t),
+\end{eqnarray} 
+\begin{eqnarray}
+C^{cc}_{gr}(\Delta t)=s C^{cc}_{gg}(\Delta t),
+\end{eqnarray}
+where $s$ is the linearly scale factor between the g and r-band and
+the superscript $^c$ represents continuum contributions to the
+flux. The time delay between emission lines and continuum flux is
+described by a one-dimensional transfer function, which eventually
+allows the fluxes in the g and r-bands to be written in terms of
+continuum and emission line covariance matrices.  Continuum
+variability in the g-band is then modeled by a Gaussian process, using
+a power-law structure function, to predict the magnitude and relative
+flux variability. The structure function power-law is a cut-off power
+law:
+\begin{eqnarray}
+V(\Delta t)\equiv1/2\langle((f(t)-f(t+\Delta t))^2\rangle \equiv
+\frac{1}{2} A^2 \left(\frac{\Delta t}{1 yr}\right)^\gamma,
+\end{eqnarray}
+where $f$ is flux at a given time.
+
 \section{The model}
 
 In our language, a ``model'' is a likelihood function---a function
