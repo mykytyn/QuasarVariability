@@ -1,138 +1,54 @@
 import numpy as np
-from QuasarVariability import QuasarVariability,CovarianceFunction
-import matplotlib
-matplotlib.use('Agg')
+if __name__ == '__main__':
+    import matplotlib
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from mag_utils import meshgrid
 import pyfits
+import mag_utils
+import QuasarVariability
 
-bands_dict = {0:'u',1:'g',2:'r',3:'i',4:'z'}
 
-def make_prior_plots(testQ,timegrid,bands,pmean,psig,means,num_samps=8):
-    maggrids = []
-    plt.subplots_adjust(hspace=0,top=.95)
-    matplotlib.rc('xtick',labelsize=6)
-    matplotlib.rc('ytick',labelsize=6)
-    for i in range(num_samps):
-        maggrid = testQ.get_prior_sample(timegrid,bands)
-        maggrid = np.array(maggrid).reshape(timegrid.shape)
-        maggrids.append(maggrid)
-        
-    for i in range(5):
-        ax=plt.subplot(511+i)
-        mask = [bands==i]
+def graph_prior_and_posterior(data, prefix='quasar'):
+    bands_dict = data.get_banddict()
+    mags = data.get_mags()
+    times = data.get_times()
+    sigmas = data.get_sigmas()
+    bands = data.get_bandnames()
+    bandsnum = data.get_bands()
+    bandlist = data.get_bandlist()
 
-        btimegrid = timegrid[mask]
-        bpmean = pmean[mask]
-        bpsig = psig[mask]
-        plt.plot(btimegrid,bpmean,'k-')
-        plt.plot(btimegrid,bpmean-bpsig,'k-')
-        plt.plot(btimegrid,bpmean+bpsig,'k-')
-        for j in range(num_samps):
-            maggrid = maggrids[j]
-            plt.plot(btimegrid,maggrid[mask],'k-',alpha=0.25)
-        plt.setp(ax.get_xticklabels(),visible=(i==4))
-        plt.ylabel('%s' % bands_dict[i])
-        plt.ylim(means[i]-.75,means[i]+.75)
+    tau = 200.
 
-def make_posterior_plots(testQ,test_times,test_mags,test_bands,test_sigmas,timegrid,bands,pmean,psig,means,num_samps=8):
-    maggrids = []
-    plt.subplots_adjust(hspace=0,top=.95)
-    matplotlib.rc('xtick',labelsize=8)
-    matplotlib.rc('ytick',labelsize=8)
+    dt = 10.
+    initial_time = np.min(times)-25
+    final_time = np.max(times)+25
 
-    for i in range(num_samps):
-        maggrid = testQ.get_conditional_sample(timegrid, bands, test_mags, test_times,
-                                               test_bands,test_sigmas)
-        maggrid = np.array(maggrid).reshape(timegrid.shape)
-        maggrids.append(maggrid)
+    timegrid, bandsgrid = mag_utils.make_band_time_grid(initial_time,
+                                                        final_time, dt,
+                                                        bandlist)
 
-    for i in range(5):
-        ax=plt.subplot(511+i)
-        mask = [bands==i]
-        test_mask = [test_bands==i]
-        plt.ylabel('%s' % bands_dict[i])
-        plt.errorbar(test_times[test_mask],test_mags[test_mask],yerr=test_sigmas[test_mask],linestyle='none',color='black',marker='.')
-        btimegrid = timegrid[mask]
-        bpmean = pmean[mask]
-        bpsig = psig[mask]
-        plt.plot(btimegrid,bpmean,'k-')
-        plt.plot(btimegrid,bpmean-bpsig,'k-')
-        plt.plot(btimegrid,bpmean+bpsig,'k-')
-        for j in range(num_samps):
-            maggrid=maggrids[j]
-            plt.plot(btimegrid,maggrid[mask],'k-',alpha=0.25)
-        plt.setp(ax.get_xticklabels(),visible=(i==4))
-        plt.ylim(means[i]-.75,means[i]+.75)
+    means, amps = mag_utils.grid_search_all_bands(mags, sigmas, bandsnum)
+    print means, amps
+    means = np.array(means)
+    amps = np.array(amps)
 
-tau = 200.
+    plt.clf()
+    quasar = QuasarVariability.QuasarVariability(CovarianceFunction(amps, tau),
+                                                 means)
+    pmean = quasar.get_mean_vector(timegrid, bandsgrid)
+    Vpp = quasar.get_variance_tensor(timegrid, bandsgrid)
+    pmean = np.array(pmean).reshape(timegrid.shape)
+    psig = np.sqrt(np.diag(np.array(Vpp)))
+    mag_utils.make_prior_plots(quasar, timegrid, bandsgrid, pmean, psig,
+                               means)
+    plt.savefig("%s_prior.png" % prefix)
 
-bandnames = ['u','g','r','i','z']
-obj = 588015509825912905
-dt = 10.
-fulltimegrid = []
-fullbands = []
-
-for i in range(5):
-    timegrid = np.arange(0.5*dt+51500,54500,dt)
-    bands = [i]*len(timegrid)
-    fulltimegrid.extend(timegrid)
-    fullbands.extend(bands)
-
-timegrid = np.array(fulltimegrid)
-bands = np.array(fullbands)
-
-means = []
-amps = []
-for name in bandnames:
-    mean, a = meshgrid(10., 30., 0., 1., 0.3, 0.008,name,obj)
-    means.append(mean)
-    amps.append(a)
-
-print means
-print amps
-means = np.array(means)
-amps = np.array(amps)
-plt.clf()
-testQ = QuasarVariability(CovarianceFunction(amps,tau),means)
-pmean=testQ.get_mean_vector(timegrid,bands)
-Vpp =testQ.get_variance_tensor(timegrid,bands)
-pmean=np.array(pmean).reshape(timegrid.shape)
-psig=np.sqrt(np.diag(np.array(Vpp)))
-make_prior_plots(testQ,timegrid,bands,pmean,psig,means)
-plt.savefig("test_prior2.png")
-
-hdulist = pyfits.open('quasar.fits')
-table = hdulist[1].data
-mask = table['headobjid']==obj
-table = table[mask]
-
-testMags = []
-testSigmas = []
-testTimes = []
-testBands = []
-
-for i in range(5):
-    name = bands_dict[i]
-    mag = table['psfMag_%s' % name]
-    err = table['psfMagerr_%s' % name]
-    time = table['mjd_%s' % name]
-    band = [i]*len(mag)
-    testMags.extend(mag)
-    testSigmas.extend(err)
-    testBands.extend(band)
-    testTimes.extend(time)
-
-testMags = np.array(testMags)
-testSigmas = np.array(testSigmas)
-testBands = np.array(testBands)
-testTimes = np.array(testTimes)
-
-plt.clf()
-
-pmean,Vpp=testQ.get_conditional_mean_and_variance(timegrid, bands, testMags, testTimes,
-                                                  testBands, testSigmas)
-pmean=np.array(pmean).reshape(timegrid.shape)
-psig=np.sqrt(np.diag(np.array(Vpp)))
-make_posterior_plots(testQ,testTimes,testMags,testBands,testSigmas,timegrid,bands,pmean,psig,means)
-plt.savefig("test_posterior2.png")
+    plt.clf()
+    pmean, Vpp = quasar.get_conditional_mean_and_variance(timegrid, bandsgrid,
+                                                          mags, times,
+                                                          bandsnum, sigmas)
+    pmean = np.array(pmean).reshape(timegrid.shape)
+    psig = np.sqrt(np.diag(np.array(Vpp)))
+    mag_utils.make_posterior_plots(quasar, times, mags, bandsnum, sigmas,
+                                   timegrid, bandsgrid, pmean, psig, means)
+    plt.savefig("%s_posterior.png" % prefix)
