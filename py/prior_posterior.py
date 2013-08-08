@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pyfits
 import utils
 import QuasarVariability
-
+import stripe82
 
 def graph_prior_and_posterior(data, prefix='quasar'):
     bands_dict = data.get_banddict()
@@ -33,14 +33,14 @@ def graph_prior_and_posterior(data, prefix='quasar'):
     amps = np.array(amps)
 
     plt.clf()
-    quasar = QuasarVariability.QuasarVariability(CovarianceFunction(amps, tau),
-                                                 means)
+    quasar = QuasarVariability.QuasarVariability(
+        QuasarVariability.CovarianceFunction(amps, tau), means)
     pmean = quasar.get_mean_vector(timegrid, bandsgrid)
     Vpp = quasar.get_variance_tensor(timegrid, bandsgrid)
     pmean = np.array(pmean).reshape(timegrid.shape)
     psig = np.sqrt(np.diag(np.array(Vpp)))
     utils.make_prior_plots(quasar, timegrid, bandsgrid, pmean, psig,
-                               means)
+                               means, bandlist)
     plt.savefig("%s_prior.png" % prefix)
 
     plt.clf()
@@ -50,5 +50,15 @@ def graph_prior_and_posterior(data, prefix='quasar'):
     pmean = np.array(pmean).reshape(timegrid.shape)
     psig = np.sqrt(np.diag(np.array(Vpp)))
     utils.make_posterior_plots(quasar, times, mags, bandsnum, sigmas,
-                                   timegrid, bandsgrid, pmean, psig, means)
+                                   timegrid, bandsgrid, pmean, psig, means,bandlist)
     plt.savefig("%s_posterior.png" % prefix)
+
+
+def main():
+    objid = 587730845812064296
+    data = stripe82.Stripe82(objid)
+    graph_prior_and_posterior(data,prefix='obj-{}'.format(objid))
+
+
+if __name__ == '__main__':
+    main()

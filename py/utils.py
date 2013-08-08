@@ -1,8 +1,8 @@
 import numpy as np
 import random
 import pyfits as pyf
+import matplotlib
 if __name__ == '__main__':
-    import matplotlib
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import random
@@ -164,7 +164,7 @@ def grid_search_obj_all(obj, grid=None):
     return np.array(means), np.array(amps)
 
 
-def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means,
+def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
                      num_samps=8):
     """
     Inputs: quasarobj: obj for the quasar we care about
@@ -200,12 +200,12 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means,
             maggrid = maggrids[j]
             plt.plot(btimegrid, maggrid[mask], 'k-', alpha=0.25)
         plt.setp(ax.get_xticklabels(), visible=(i == 4))
-        plt.ylabel('%s' % bands_dict[i])
+        plt.ylabel('%s' % bandslist[i])
         plt.ylim(means[i] - .75, means[i] + .75)
 
 
 def make_posterior_plots(quasarobj, times, mags, bands, sigmas, timegrid,
-                         bandsgrid, pmean, psig, means, num_samps=8):
+                         bandsgrid, pmean, psig, means, bandlist, num_samps=8):
     """
     Inputs: quasarobj: obj for the quasar we care about
             times: measured times
@@ -238,7 +238,7 @@ def make_posterior_plots(quasarobj, times, mags, bands, sigmas, timegrid,
         ax = plt.subplot(511 + i)
         maskgrid = [bandsgrid == i]
         mask = [bands == i]
-        plt.ylabel('%s' % bands_dict[i])
+        plt.ylabel('%s' % bandlist[i])
         plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask],
                      linestyle='none', color='black', marker='.')
         btimegrid = timegrid[maskgrid]
@@ -252,6 +252,28 @@ def make_posterior_plots(quasarobj, times, mags, bands, sigmas, timegrid,
             plt.plot(btimegrid, maggrid[maskgrid], 'k-', alpha=0.25)
         plt.setp(ax.get_xticklabels(), visible=(i == 4))
         plt.ylim(means[i] - .75, means[i] + .75)
+
+def make_data_plots(obj,prefix='quasar_data'):
+    plt.clf()
+    plt.subplots_adjust(hspace=0, top=.95)
+    matplotlib.rc('xtick', labelsize=8)
+    matplotlib.rc('ytick', labelsize=8)
+
+    mags, times, bands, sigmas = obj.get_data()
+    start = np.min(times)-50.
+    end = np.max(times)+50.
+    bandlist = obj.get_bandlist()
+
+    for i in range(5):
+        ax = plt.subplot(511+i)
+        mask = [bands==i]
+        plt.xlim(start,end)
+        plt.ylabel('%s' % bandlist[i])
+        plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask], linestyle='none', color='black', marker='.')
+        plt.setp(ax.get_xticklabels(),visible=(i == 4))
+
+    plt.savefig('{}.png'.format(prefix))
+
 
 def mock_panstarrs(obj, time_step):
     """
@@ -273,19 +295,18 @@ def mock_panstarrs(obj, time_step):
     new_bands = []
 
     for i in np.arange(start_time, end_time, time_step):
-        mask = [times > i] & [times < i + time_step]
+        mask = [(times >= i) & (times < (i + time_step))]
         if not np.any(mask):
             continue
         mask_mags = mags[mask]
         mask_times = times[mask]
         mask_sigmas = sigmas[mask]
         mask_bands = bands[mask]
-        samp = np.randint(len(mask_mags))
+        samp = np.random.randint(len(mask_mags))
         new_mags.append(mask_mags[samp])
         new_times.append(mask_times[samp])
         new_sigmas.append(mask_sigmas[samp])
         new_bands.append(mask_bands[samp])
-
     return new_mags, new_times, new_sigmas, new_bands
 
 

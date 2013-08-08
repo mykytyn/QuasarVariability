@@ -135,7 +135,13 @@ class QuasarVariability:
             self.get_variance_tensor(times, bands, sigmas))
 
     def ln_prior(self):
-        return 0.
+        amps,tau = self.get_covar().get_pars()
+        prior = 0.
+        for a in amps:
+            prior += utils.ln_1d_gauss(a,-1.,1)
+        prior += utils.ln_1d_gauss(tau, 2., 1.)
+        return prior
+            
 
     def get_conditional_mean_and_variance(self, ptimes, pbands,
                                           mags, times, bands, sigmas):
@@ -219,7 +225,7 @@ def run_mcmc(objid, prefix):
     qv = QuasarVariability(CovarianceFunction(amps, init_tau), means)
 
     ndim = 11
-    nwalkers = 50
+    nwalkers = 26
     nthreads = 10
     p0 = []
     p0.extend(amps)
@@ -239,11 +245,11 @@ def run_mcmc(objid, prefix):
 
     pos, prob, state = sampler.run_mcmc(initial, 1)
     sampler.reset()
-    pos, prob, state = sampler.run_mcmc(pos, 5000)
+    pos, prob, state = sampler.run_mcmc(pos, 4000)
     labels = ['ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z', 'ln tau',
               'mean u', 'mean g', 'mean r', 'mean i', 'mean z']
     figure = triangle.corner(sampler.flatchain, labels=labels)
-    figure.savefig('prefix-%d-triangle.png' % objid)
+    figure.savefig('%s-%d-triangle.png' % (prefix,objid))
     plt.clf()
     chain = sampler.chain
     print chain.shape
@@ -252,13 +258,15 @@ def run_mcmc(objid, prefix):
         plt.clf()
         for i in range(nwalkers):
             plt.plot(chain[i, :, j])
-        plt.savefig('prefix-%d-walker-dim%d.png' % (objid, j))
+        plt.savefig('%s-%d-walker-dim%d.png' % (prefix,objid, j))
 
 
 def main():
-    obj = 588015509825912905  # lot of data
-    obj = 587730845812064296  # less data
-    run_mcmc(obj, 'mcmc_test')
+    #obj = 588015509825912905  # lot of data
+    #obj = 587730845812064296  # less data
+
+    for obj in open('targets.txt'):
+        run_mcmc(int(obj), 'targets')
 
 if __name__ == '__main__':
     main()
