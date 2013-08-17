@@ -168,7 +168,7 @@ proportional to $1/f^2$ are suggestive of random walks and stochstic
 timescales. The following equations describes the autoregressive
 process:
 \begin{eqnarray}
-dX(t)==\frac{1}{\tau}X(t)dt + \sigma\sqrt{dt}\epsilon(t)+bdt
+dX(t)=\frac{1}{\tau}X(t)dt + \sigma\sqrt{dt}\epsilon(t)+bdt
 \tau,\sigma,t > 0.
 \end{eqnarray}
 The variance for $X(t)$ is the following given $X(s)$ where s $<$ t:
@@ -208,6 +208,60 @@ V(\Delta t)\equiv1/2\langle((f(t)-f(t+\Delta t))^2\rangle \equiv
 \frac{1}{2} A^2 \left(\frac{\Delta t}{1 yr}\right)^\gamma,
 \end{eqnarray}
 where $f$ is flux at a given time.
+
+Hernitschek, N. (Masters Thesis, University of Heidelberg \& MPIA) -
+``Estimating Black Hole Masses in Hundreds of Quasars'':
+
+This study aims to measure the broad-line region time delay due to
+finite light travel time. Measuring the time delay also provides
+insight on the BLR size, structure and with knowledge of the BLR
+velocities can used to infer black hole masses. A stochastic
+reverberation mapping technique is developed to test on many quasars
+in the SDSS Stripe 82 data, which contains flux measurements for about
+60 epochs, but initial testing of this technique is first applied to
+mock light-curves. Two structure functions are evaluated on the mock
+light-curves in this analysis, one follows a power-law and the other
+is a damped random walk model. Their mathematical representations are:
+\begin{eqnarray}
+V(t_{ij})=A^2 \left(\frac{\Delta t_{ij}}{1 yr}\right) ^\gamma,
+\end{eqnarray} and
+\begin{eqnarray}
+C_{ij}=\frac{\omega ^2}{2} \exp \left(- \frac {|\Delta t_{ij}|}{\tau}\right).
+\end {eqnarray}
+In the power-law structure function, $A$ and $\gamma$ are the
+dimensionless parameters described in Schmidt et al., 2010. For the
+damped random walk model, the $\omega ^2$ is the intrinsic variance of
+the data. For all light-curve assessments, only one bandpass is
+observed at a time.
+
+MacLeod et al., 2012 - ``A Description of Quasar Variability Measured
+Using Repeated SDSS and POSS Imaging'': MacLeod et al. provides a
+statistical interpretation of continuum quasar variability in the
+optical range. They use SDSS and POSS data with a damped random walk
+model to explain the ensemble variability for quasars that are not in
+S82, such as those quasars with exponential distributions of large
+magnitude changes. The damped random walk model proves to be accurate
+for time scales of 5-2000 days, which allows this model to be used to
+predict quasar contamination in transient surveys. The ensemble
+structure function is given by the weighted structure function of all
+individual quasars structure functions:
+\begin{eqnarray}
+SF(\Delta t)= \int d\tau dSF_{\infty} \frac{d^2n}{ d\tau dSF_{\infty}}
+SF(\Delta t| \tau,SF_{\infty})_{qso},
+\end{eqnarray} 
+where $ SF(\Delta t| \tau,SF_{\infty})_{qso}$ is the structure
+function for a quasar at some time $\Delta t$ with DRW parameters
+$\tau$ and $SF_{\infty}$ given by
+\begin{eqnarray}
+ SF(\Delta t| \tau,SF_{\infty})_{qso}=SF_{\infty}(1-e^{-|\Delta
+   t|/\tau})^{1/2}.  
+\end{eqnarray}
+Note that $SF(\Delta t)_{qso}$ is the standard
+ deviation in magnitude difference, $\Delta m$, for some $\Delta t$ and is related
+ to the standard deviation of magnitudes by $SF(\Delta
+ t)_{qso}=\sqrt{2}\sigma_m$.
+
+
 
 \section{The model}
 
