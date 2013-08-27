@@ -410,6 +410,8 @@ The priors we used were for the amplitudes in ln space were Gaussians of length 
 For tau we used a Guassian prior of length x centered at y.
 We used no priors for our means.
 
+The initial values we found were found using a gridsearch in each band.
+
 
 We used MCMC to sample our posterior distribution. For this, we used the emcee python package. We ran MCMC both with tau fixed and not. 
 
