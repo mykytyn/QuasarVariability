@@ -293,7 +293,7 @@ def temp_ln(pars, mags, times, bands, sigmas):
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
-def run_mcmc(objid, prefix):
+def run_mcmc(objid, prefix, noTau=False):
     data = stripe82.Stripe82(objid)
     mags = data.get_mags()
     print len(mags)
@@ -315,17 +315,18 @@ def run_mcmc(objid, prefix):
 
     qv = QuasarVariability(RandomWalk(amps, init_tau), means)
 
-    ndim = 10
+    ndim = 11 - noTau
     nwalkers = 26
     nthreads = 10
     p0 = []
     p0.extend(means)
     p0.extend(amps)
-    #p0.append(init_tau)
+    if not noTau:
+        p0.append(init_tau)
     p0 = np.array(p0)
 
     initial = []
-    p0 = qv.pack_pars(noTau=True)
+    p0 = qv.pack_pars(noTau)
     for i in range(nwalkers):  # could probably be improved -mykytyn
         pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
         initial.append(pp)
@@ -338,12 +339,12 @@ def run_mcmc(objid, prefix):
     sampler.reset()
     pos, prob, state = sampler.run_mcmc(pos, 500)
     if len(p0)==11:
-        labels = ['ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z',
-                  'mean u', 'mean g', 'mean r', 'mean i', 'mean z','ln_tau']
+        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
+                  'ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z','ln_tau']
 
     else:
-        labels = ['ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z',
-                  'mean u', 'mean g', 'mean r', 'mean i', 'mean z']
+        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
+                  'ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z']
         
     figure = triangle.corner(sampler.flatchain, labels=labels)
     figure.savefig('%s-%d-triangle.png' % (prefix,objid))
@@ -359,10 +360,11 @@ def run_mcmc(objid, prefix):
     utils.make_posterior_plots(quasarsamp, times, mags, bands, sigmas, timegrid, bandgrid, pmean, psig, means, bandnames)
     plt.savefig('{}-{}-posterior.png'.format(prefix,objid))
     
-    for j in range(ndim):
+    for j,par in enumerate(labels):
         plt.clf()
         for i in range(nwalkers):
             plt.plot(chain[i, :, j])
+        plt.title(par)
         plt.savefig('%s-%d-walker-dim%d.png' % (prefix,objid, j))
 
 
