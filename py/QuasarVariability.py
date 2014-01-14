@@ -13,8 +13,9 @@ init_tau = 50.
 wavelengths = [3543.,4770.,6231.,7625.,9134.]
 base = 2
 
+
 class RandomWalk:
-    def __init__(self, a, tau):
+    def __init__(self, a, tau, fixedTau=False):
         """
         Inputs: a: amplitudes of each band
                 tau: scalar of time scale (in days)
@@ -24,6 +25,7 @@ class RandomWalk:
 
         self.a = a
         self.tau = tau
+        self.fixedTau = fixedTau
 
 
     def _get_cross_term_matrix(self, t1, b1, t2, b2):
@@ -47,28 +49,39 @@ class RandomWalk:
         assert len(sigmas) == len(times)
         return tt + np.diag(sigmas ** 2)
 
-    def set_pars(self, a, tau):
-        self.a = a
-        self.tau = tau
+    def set_pars(self, pars):
+        self.a = pars[0:5]
+        if not fixedTau:
+            self.tau = pars[6]
 
     def get_pars(self):
-        return self.a, self.tau
+        if not self.fixedTau:
+            return self.a, self.tau
+        return self.a
+
+    def get_packed_pars(self):
+        if not self.fixedTau:
+            return np.log(self.a), np.log(self.tau)
+        return np.log(self.a)
 
     def get_priors(self):
         """
         Priors still in progress!!!
         Use with caution!!!
         """
-        amps,tau = self.get_pars()
         prior = 0.
+        if self.fixedTau:
+            amps = self.get_pars()
+        else:
+            amps,tau = self.get_pars()
+            prior += utils.ln_1d_gauss(tau, 5., 2.)
         for a in amps:
             prior += utils.ln_1d_gauss(a, -1. ,1)
-        prior += utils.ln_1d_gauss(tau, 5., 2.)
         return prior
 
 
 class RandomWalkAlpha:
-    def __init__(self, a_r, alpha, tau, wavelengths, base):
+    def __init__(self, a_r, alpha, tau, wavelengths, base, fixedTau = False):
         """
         Inputs: a: amplitudes of each band
                 tau: scalar of time scale (in days)
@@ -82,6 +95,7 @@ class RandomWalkAlpha:
         self.wavelengths = wavelengths
         self.base = base
         self.a = np.array([self._get_coef(x) for x in range(len(self.wavelengths))])
+        self.fixedTau = fixedTau
 
     def _get_coef(self, band):
         coef =  self.a_r * ((self.wavelengths[band] / self.wavelengths[self.base]) ** self.alpha)
@@ -108,23 +122,112 @@ class RandomWalkAlpha:
         assert len(sigmas) == len(times)
         return tt + np.diag(sigmas ** 2)
 
-    def set_pars(self, a_r, alpha, tau):
-        self.a_r = a_r
-        self.alpha = alpha
-        assert not np.isnan(alpha)
-        self.tau = tau
+    def set_pars(self, pars):
+        self.a_r = np.exp(pars[0])
+        self.alpha = pars[1]
+        assert not np.isnan(self.alpha)
+        if not self.fixedTau:
+            self.tau = np.exp(pars[2])
         self.a = np.array([self._get_coef(x) for x in range(len(self.wavelengths))])
 
-
     def get_pars(self):
-        return self.a_r, self.alpha, self.tau
+        if not self.fixedTau:
+            return self.a_r, self.alpha, self.tau
+        return self.a_r, self.alpha
+
+    def get_packed_pars(self):
+        if not self.fixedTau:
+            return np.log(self.a_r), self.alpha, np.log(self.tau)
+        else:
+            return np.log(self.a_r), self.alpha
 
     def get_priors(self):
-        a_r, alpha, tau = self.get_pars()
-        prior = utils.ln_1d_gauss(tau, 5., 2.)
+        prior = 0
+        if not self.fixedTau:
+            a_r, alpha, tau = self.get_pars()
+            prior += utils.ln_1d_gauss(tau, 5., 2.)
+        else:
+            a_r, alpha = self.get_pars()
         prior += utils.ln_1d_gauss(a_r, -1. ,1)
         prior += utils.ln_1d_gauss(alpha, -1., .25)
         return prior
+
+class newRandomWalk:
+    def __init__(self, a_r, alpha, tau_r, beta, delta_r, gamma, wavelengths, base):
+        """
+        Inputs: a: amplitudes of each band
+                tau: scalar of time scale (in days)
+        Outputs: None
+        Comments: Damped random walk model
+        """
+
+        self.a_r = a_r
+        self.alpha = alpha
+        self.tau_r = tau_r
+        self.beta = beta
+        self.delta_r = delta_r
+        self.gamma = gamma
+        self.wavelengths = wavelengths
+        self.base = base
+        self.a = np.array([self._get_coef(x,a_r,alpha) for x in range(len(self.wavelengths))])
+        self.tau = np.array([self._get_coef(x,tau_r,beta) for x in range(len(self.wavelengths))])
+        self.delta = np.array([self._get_coef(x,delta_r,gamma) for x in range(len(self.wavelengths))])
+
+
+    def _get_coef(self, band, coef, exponent):
+        coef =  coef * ((self.wavelengths[band] / self.wavelengths[self.base]) ** exponent)
+        return coef
+
+    def _get_cross_term_matrix(self, t1, b1, t2, b2):
+        return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
+                         np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]]*self.delta[b2[None,:]])) / (self.tau[b1[:, None]] * self.tau[b2[None,:]])))
+
+    def get_variance_tensor(self, times, bands, sigmas=None):
+        """
+        Inputs: times: an array of times (in days)
+                bands: a vector associating each point with a band
+                       (using 0=u, etc.)
+                sigmas: an array of variances
+        Outputs:
+                the variance tensor
+        Comments:
+        """
+        tt = self._get_cross_term_matrix(times, bands, times, bands)
+        if sigmas is None:
+            return tt
+        assert len(sigmas) == len(times)
+        return tt + np.diag(sigmas ** 2)
+
+    def set_pars(self, pars):
+        self.a_r = np.exp(pars[0])
+        self.alpha = pars[1]
+        assert not np.isnan(self.alpha)
+        self.tau_r = np.exp(pars[2])
+        self.beta = pars[3]
+        self.delta_r = pars[4]
+        self.gamma = pars[5]
+        self.a = np.array([self._get_coef(x,self.a_r,self.alpha) for x in range(len(self.wavelengths))])
+        self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) for x in range(len(self.wavelengths))])
+        self.delta = np.array([self._get_coef(x,self.delta_r,self.gamma) for x in range(len(self.wavelengths))])
+
+    def get_pars(self):
+        return self.a_r, self.alpha, self.tau_r, self.beta, self.delta_r, self.gamma
+
+    def get_packed_pars(self):
+        return np.log(self.a_r), self.alpha, np.log(self.tau_r), self.beta, self.delta_r, self.gamma
+
+    def get_priors(self):
+        #TODO: FIX PRIORS OK
+        prior = 0
+        a_r, alpha, tau_r, beta, delta_r, gamma = self.get_pars()
+        prior += utils.ln_1d_gauss(tau_r, 5., 2.)
+        prior += utils.ln_1d_gauss(beta, -1., .25)
+        #prior += utils.ln_1d_gauss(delta_r, 0., 1.)
+        prior += utils.ln_1d_gauss(gamma, -1., .25)
+        prior += utils.ln_1d_gauss(a_r, -1. ,1.)
+        prior += utils.ln_1d_gauss(alpha, -1., .25)
+        return prior
+
 
 class QuasarVariability:
     def __init__(self, covar, mean):
@@ -255,32 +358,15 @@ class QuasarVariability:
         return np.random.multivariate_normal(
             np.array(pmean).reshape(ptimes.shape), Vpp, 1)
 
-    def pack_pars(self, noTau=False):
+    def pack_pars(self):
         temp = []
         temp.extend(self.get_mean())
-        pars = self.get_covar().get_pars()
-        if len(pars)==2:
-            a, tau = pars
-            temp.extend(np.log(a))
-        else:
-            a_r, alpha, tau = pars
-            temp.append(np.log(a_r))
-            temp.append(alpha)
-        if not noTau:
-            temp.append(np.log(tau))
+        temp.extend(self.get_covar().get_packed_pars())
         return temp
-
 
     def unpack_pars(self, pars):
         self.set_mean(pars[0:5])
-        if len(pars)==11:
-            self.get_covar().set_pars(np.exp(pars[5:10]), np.exp(pars[10]))
-        elif len(pars)==10:
-            self.get_covar().set_pars(np.exp(pars[5:10]), self.get_covar().get_pars()[1])
-        elif len(pars)==8:
-            self.get_covar().set_pars(np.exp(pars[5]), pars[6], np.exp(pars[7]))
-        else:
-            self.get_covar().set_pars(np.exp(pars[5]), pars[6], self.get_covar().get_pars()[2])
+        self.get_covar().set_pars(pars[5:])
 
     def mc_ln_prob(self, pars, mags, times, bands, sigmas):
         self.unpack_pars(pars)
@@ -288,21 +374,27 @@ class QuasarVariability:
                 + self.ln_prior())
 
 
-def temp_ln(pars, mags, times, bands, sigmas, alpha=False):
-    if alpha:
+    
+
+
+def temp_ln(pars, mags, times, bands, sigmas, alpha=False, noTau=False, newCovar=False):
+    if newCovar:
+        tempObj = QuasarVariability(newRandomWalk(-1.,-1.,init_tau,-1.,0.,-1.,wavelengths,base), pars[0:5])
+    elif alpha:
         tempObj = QuasarVariability(RandomWalkAlpha(
                 np.exp(pars[5]), np.exp(pars[6]), init_tau,
-                wavelengths, base),
+                wavelengths, base, noTau),
                                     pars[0:5])
     else:
         tempObj = QuasarVariability(RandomWalk(
-                np.exp(pars[5:10]), init_tau), pars[0:5])
+                np.exp(pars[5:10]), init_tau, noTau), pars[0:5])
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
 
 
-def run_mcmc(objid, prefix, noTau=False, alpha=False):
+def run_mcmc(objid, prefix, noTau=False, alpha=False, newCovar=False):
+    np.seterr(over='raise')
     data = stripe82.Stripe82(objid)
     mags = data.get_mags()
     print len(mags)
@@ -319,18 +411,24 @@ def run_mcmc(objid, prefix, noTau=False, alpha=False):
     timegrid, bandgrid = utils.make_band_time_grid(initialtime, finaltime,
                                                        dt, bandnames)
 
-    #means, amps = utils.grid_search_all_bands(mags, sigmas, bands)
-    means = [19.95, 19.75, 19.45, 19.45, 19.35]
-    amps = [.0866, .025, .125, .116, .022]
+    means, amps = utils.grid_search_all_bands(mags, sigmas, bands)
+    #means = [19.95, 19.75, 19.45, 19.45, 19.35]
+    #amps = [.0866, .025, .125, .116, .022]
+
     if alpha:
-        qv = QuasarVariability(RandomWalkAlpha(amps[2],-1.,init_tau, wavelengths, base), means)
+        qv = QuasarVariability(RandomWalkAlpha(amps[2],-1.,init_tau, wavelengths, base, noTau), means)
+    elif newCovar:
+        qv = QuasarVariability(newRandomWalk(amps[2],-1.,init_tau,-1.,0,-1.,wavelengths,base), means)
     else:
-        qv = QuasarVariability(RandomWalk(amps, init_tau), means)
+        qv = QuasarVariability(RandomWalk(amps, init_tau, noTau), means)
 
     if alpha:
         ndim = 8 - noTau
+    elif newCovar:
+        ndim = 11
     else:
         ndim = 11 - noTau
+    print ndim
     nwalkers = 26
     nthreads = 1
     p0 = []
@@ -347,31 +445,35 @@ def run_mcmc(objid, prefix, noTau=False, alpha=False):
     print p0
     print len(p0)
     initial = []
-    p0 = qv.pack_pars(noTau)
+    p0 = qv.pack_pars()
+    print p0
     for i in range(nwalkers):  # could probably be improved -mykytyn
         pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
         initial.append(pp)
-    arguments = [mags,times, bands, sigmas, alpha]
+    arguments = [mags,times, bands, sigmas, alpha, noTau, newCovar]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
                                     args=arguments, threads=nthreads)
 
-    pos, prob, state = sampler.run_mcmc(initial, 300)
+    pos, prob, state = sampler.run_mcmc(initial, 30)
     sampler.reset()
-    pos, prob, state = sampler.run_mcmc(pos, 700)
-    if len(p0)==11:
+    pos, prob, state = sampler.run_mcmc(pos, 3000)
+    if not alpha and not noTau and not newCovar:
         labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
                   'ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z','ln_tau']
 
-    elif len(p0)==10:
+    elif not alpha and noTau and not newCovar:
         labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
                   'ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z']
         
-    elif len(p0)==8:
+    elif alpha and not noTau and not newCovar:
         labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
                   'ln a_r', 'alpha', 'ln_tau']
-    elif len(p0)==7:
+    elif alpha and noTau and not newCovar:
         labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
                   'ln a_r', 'alpha']
+
+    elif newCovar:
+        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z', 'ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r', 'gamma']
 
     print labels
     print len(labels)

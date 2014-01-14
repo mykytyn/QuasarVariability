@@ -8,6 +8,7 @@ f = open('ids.txt','r')
 for line in f:
     objid = int(line)
     make_grid_plots(objid)
+    assert(False)
     #UGLY but i'm lazy rn
     try:
         os.mkdir(os.path.expanduser('~/public_html/%d' % objid))
@@ -17,6 +18,6 @@ for line in f:
         os.rename('grid-%d-%s.png' %(objid,band),os.path.expanduser('~/public_html/%d/%s.png' % (objid,band)))
         os.rename('grid-%d-%s-overlay.png' %(objid,band),os.path.expanduser('~/public_html/%d/%s-overlay.png' % (objid,band)))
     count+=1
-    if count==5:
+    if count==1:
         break
 

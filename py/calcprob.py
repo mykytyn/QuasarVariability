@@ -24,6 +24,7 @@ r_band_err = table['psfMagerr_r']
 mjd_r = table['mjd_r']
 
 
+
 for g,gt,r,rt,g_err,r_err in zip(g_band,mjd_g,r_band,mjd_r,g_band_err,r_band_err):
     assert np.abs(gt-rt)<1./24
 

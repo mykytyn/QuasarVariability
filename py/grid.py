@@ -1,5 +1,5 @@
 import numpy as np
-from lnprob import ln_prob
+from lnprob import *
 import pyfits
 import matplotlib
 matplotlib.use('Agg')
@@ -29,11 +29,11 @@ def make_grid_plots(objid):
     mjd_r = table['mjd_r']
     r_mean = np.mean(r_band)
 
-    for target in ['u','g','r','i','z']:
+    for target in ['g']: #['u','g','r','i','z']:
         target_band = table['psfMag_%s' % target]
         target_band_err = table['psfMagerr_%s' %target]
         mjd_target = table['mjd_%s' %target]
-
+        tau = 800.
         # set up arrays
         bmin = np.mean(target_band)-1.
         bmax = np.mean(target_band)+1.
@@ -45,6 +45,17 @@ def make_grid_plots(objid):
         az = np.arange(amin,amax,astep)
         aa,bb = np.meshgrid(az,bs)
         probs = np.zeros_like(aa)
+        ts = mjd_target
+        tt,tt = np.meshgrid(ts,ts)
+        V = np.zeros_like(tt)
+
+        ti = len(ts)
+        tj = len(ts)
+
+        for i in range(ti):
+            for j in range(tj):
+                V[i][j] = np.exp(-np.abs(ts[i]-ts[j])/tau)+(i==j)*(r_band_err[i]+target_band_err[i])
+
 
         # do stupid loop
         s=0
@@ -53,8 +64,7 @@ def make_grid_plots(objid):
         for i in range(ni):
             for j in range(nj):
                 pars = np.array([aa[i,j],bb[i,j],s,r_mean])
-                probs[i,j] = ln_prob(pars,target_band,r_band,target_band_err,r_band_err)
-    
+                probs[i,j] = ln_prob2(pars,np.array(target_band),np.array(r_band),V)    
         plt.clf()
         vmax = np.max(probs)
         vmin = vmax-10.
@@ -64,7 +74,7 @@ def make_grid_plots(objid):
         plt.title('Objid: %d, Band: %s' % (objid,target))
         plt.xlabel('a param')
         plt.ylabel('b param')
-        plt.savefig('grid-%d-%s.png' % (objid,target))
+        plt.savefig('mv-grid-%d-%s.png' % (objid,target))
         loc = np.argmax(probs)
         bloc,aloc = np.unravel_index(loc,probs.shape)
         print aloc,bloc
@@ -84,7 +94,7 @@ def make_grid_plots(objid):
         plt.legend(loc='upper left')
         plt.title('Objid: %d' % objid)
         #plt.ylim(18.0,20.5)
-        plt.savefig('grid-%d-%s-overlay.png' % (objid,target))
+        plt.savefig('mv-grid-%d-%s-overlay.png' % (objid,target))
 
 
 

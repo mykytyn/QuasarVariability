@@ -38,9 +38,12 @@ r_mean = np.mean(r_band)
 print r_band_err,g_band_err
 
 
-ts = np.arange(0,1000.,50.)
+#ts = np.arange(0,1000.,50.)
+ts = mjd_r
+a = 1.12
+b = 18.6224
 
-for tau in [50,200,800]:
+for tau in [200]:
     plt.clf()
     tt,tt = np.meshgrid(ts,ts)
     ti,tj = tt.shape
