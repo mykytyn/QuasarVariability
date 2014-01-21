@@ -243,7 +243,7 @@ class newRandomWalk:
         a_r, alpha, tau_r, beta, delta_r, gamma = self.get_pars()
         prior += utils.ln_1d_gauss(tau_r, 5., 2.)
         prior += utils.ln_1d_gauss(beta, -1., .25)
-        #prior += utils.ln_1d_gauss(delta_r, 0., 1.)
+        prior += utils.ln_1d_gauss(delta_r, 0., 1.)
         prior += utils.ln_1d_gauss(gamma, -1., .25)
         prior += utils.ln_1d_gauss(a_r, -1. ,1.)
         prior += utils.ln_1d_gauss(alpha, -1., .25)
@@ -464,6 +464,7 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCo
     nthreads = 10
 
     p0 = qv.pack_pars()
+    print p0
 
     initial = []
     for i in range(nwalkers):  # could probably be improved -mykytyn
