@@ -79,6 +79,18 @@ class RandomWalk:
             prior += utils.ln_1d_gauss(a, -1. ,1)
         return prior
 
+    def get_labels(self):
+        if self.fixedTau:
+            return ['mean u', 'mean g', 'mean r', 'mean i',
+                    'mean z', 'ln a_u', 'ln a_g', 'ln a_r', 
+                    'ln a_i', 'ln a_z','ln_tau']
+        else:
+            return ['mean u', 'mean g', 'mean r', 'mean i',
+                    'mean z', 'ln a_u', 'ln a_g', 'ln a_r', 
+                    'ln a_i', 'ln a_z']
+            
+
+
 
 class RandomWalkAlpha:
     def __init__(self, a_r, alpha, tau, wavelengths, base, fixedTau = False):
@@ -152,6 +164,15 @@ class RandomWalkAlpha:
         prior += utils.ln_1d_gauss(alpha, -1., .25)
         return prior
 
+    def get_labels(self):
+        if self.fixedTau:
+            return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
+                    'ln a_r', 'alpha', 'ln_tau']
+        else:
+            return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
+                    'ln a_r', 'alpha']
+
+
 class newRandomWalk:
     def __init__(self, a_r, alpha, tau_r, beta, delta_r, gamma, wavelengths, base):
         """
@@ -180,7 +201,7 @@ class newRandomWalk:
 
     def _get_cross_term_matrix(self, t1, b1, t2, b2):
         return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
-                         np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]]*self.delta[b2[None,:]])) / (self.tau[b1[:, None]] * self.tau[b2[None,:]])))
+                         np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]] - self.delta[b2[None,:]])) / np.sqrt(self.tau[b1[:, None]] * self.tau[b2[None,:]])))
 
     def get_variance_tensor(self, times, bands, sigmas=None):
         """
@@ -227,6 +248,11 @@ class newRandomWalk:
         prior += utils.ln_1d_gauss(a_r, -1. ,1.)
         prior += utils.ln_1d_gauss(alpha, -1., .25)
         return prior
+
+    def get_labels(self):
+        return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
+                'ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r',
+                'gamma', 'ln_prob']
 
 
 class QuasarVariability:
@@ -293,9 +319,12 @@ class QuasarVariability:
         """
         assert len(x) == len(mu) == V.shape[0] == V.shape[1]
         dx = x - mu
-        return -0.5 * np.linalg.slogdet(V)[1] + \
-               -0.5 * dx.getT() * V.getI() * dx
-
+        try:
+            return -0.5 * np.linalg.slogdet(V)[1] + \
+                -0.5 * dx.getT() * V.getI() * dx
+        except:
+            print self.get_covar().get_pars()
+            raise
     def ln_likelihood(self, mags, times, bands, sigmas):
         """
         Inputs: mags: an array of mags
@@ -373,6 +402,9 @@ class QuasarVariability:
         return (self.ln_likelihood(mags, times, bands, sigmas)[0, 0]
                 + self.ln_prior())
 
+    def get_labels(self):
+        return self.get_covar().get_labels()
+
 
     
 
@@ -393,32 +425,31 @@ def temp_ln(pars, mags, times, bands, sigmas, alpha=False, noTau=False, newCovar
 
 
 
-def run_mcmc(objid, prefix, noTau=False, alpha=False, newCovar=False):
-    np.seterr(over='raise')
-    data = stripe82.Stripe82(objid)
+def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCovar=False):
     mags = data.get_mags()
-    print len(mags)
     sigmas = data.get_sigmas()
     bands = data.get_bands()
     times = data.get_times()
-
     bandnames = data.get_bandlist()
 
     dt = 30.
     initialtime = np.min(times) - 50
     finaltime = np.max(times) + 50
-
     timegrid, bandgrid = utils.make_band_time_grid(initialtime, finaltime,
                                                        dt, bandnames)
-
-    means, amps = utils.grid_search_all_bands(mags, sigmas, bands)
-    #means = [19.95, 19.75, 19.45, 19.45, 19.35]
-    #amps = [.0866, .025, .125, .116, .022]
-
+    if newCovar:
+        init_means = initialp0[0:5]
+        init_a_r = initialp0[5]
+        init_alpha = initialp0[6]
+        init_tau_r = initialp0[7]
+        init_beta = initialp0[8]
+        init_delta_r = initialp0[9]
+        init_gamma = initialp0[10]
     if alpha:
         qv = QuasarVariability(RandomWalkAlpha(amps[2],-1.,init_tau, wavelengths, base, noTau), means)
     elif newCovar:
-        qv = QuasarVariability(newRandomWalk(amps[2],-1.,init_tau,-1.,0,-1.,wavelengths,base), means)
+        qv = QuasarVariability(newRandomWalk(init_a_r,init_alpha,
+                                             init_tau_r,init_beta,init_delta_r,init_gamma,wavelengths,base), init_means)
     else:
         qv = QuasarVariability(RandomWalk(amps, init_tau, noTau), means)
 
@@ -428,25 +459,13 @@ def run_mcmc(objid, prefix, noTau=False, alpha=False, newCovar=False):
         ndim = 11
     else:
         ndim = 11 - noTau
-    print ndim
-    nwalkers = 26
-    nthreads = 1
-    p0 = []
-    p0.extend(means)
-    if alpha:
-        p0.append(amps[2])
-        p0.append(-1.)
-    else:
-        p0.extend(amps)
 
-    if not noTau:
-        p0.append(init_tau)
-    p0 = np.array(p0)
-    print p0
-    print len(p0)
-    initial = []
+    nwalkers = 32
+    nthreads = 10
+
     p0 = qv.pack_pars()
-    print p0
+
+    initial = []
     for i in range(nwalkers):  # could probably be improved -mykytyn
         pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
         initial.append(pp)
@@ -454,37 +473,24 @@ def run_mcmc(objid, prefix, noTau=False, alpha=False, newCovar=False):
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
                                     args=arguments, threads=nthreads)
 
-    pos, prob, state = sampler.run_mcmc(initial, 30)
+    pos, prob, state = sampler.run_mcmc(initial, 1)
     sampler.reset()
-    pos, prob, state = sampler.run_mcmc(pos, 3000)
-    if not alpha and not noTau and not newCovar:
-        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                  'ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z','ln_tau']
+    pos, prob, state = sampler.run_mcmc(pos, num_steps)
+    labels = qv.get_labels()
 
-    elif not alpha and noTau and not newCovar:
-        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                  'ln a_u', 'ln a_g', 'ln a_r', 'ln a_i', 'ln a_z']
-        
-    elif alpha and not noTau and not newCovar:
-        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                  'ln a_r', 'alpha', 'ln_tau']
-    elif alpha and noTau and not newCovar:
-        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                  'ln a_r', 'alpha']
+    highln = np.argmax(sampler.lnprobability)
+    best = sampler.flatchain[highln]
+    bestln = sampler.lnprobability.flatten()[highln]
+    best[5] = np.exp(best[5])
+    best[7] = np.exp(best[7])
+    trichain = np.column_stack((sampler.flatchain, sampler.lnprobability.flatten()))
 
-    elif newCovar:
-        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z', 'ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r', 'gamma']
-
-    print labels
-    print len(labels)
-    print sampler.flatchain.shape
-    figure = triangle.corner(sampler.flatchain, labels=labels)
-    figure.savefig('%s-%d-triangle.png' % (prefix,objid))
+    figure = triangle.corner(trichain, labels=labels)
+    figure.savefig('%s-triangle.png' % (prefix))
     plt.clf()
     chain = sampler.chain
-    print chain.shape
-    print chain[0, :, 2].shape
     sample = sampler.flatchain[-1, :]
+
     #quasarsamp = QuasarVariability(RandomWalk(sample[0:5],init_tau),sample[5:10])
     #pmean, Vpp = quasarsamp.get_conditional_mean_and_variance(timegrid,bandgrid,mags,times,bands, sigmas)
     #pmean = np.array(pmean).reshape(timegrid.shape)
@@ -494,12 +500,17 @@ def run_mcmc(objid, prefix, noTau=False, alpha=False, newCovar=False):
     
     for j,par in enumerate(labels):
         plt.clf()
-
-        for i in range(nwalkers):
-            plt.plot(chain[i, :, j])
+        if par == "ln_prob":
+            for i in range(nwalkers):
+                plt.plot(sampler.lnprobability[i, :])
+        else:
+            for i in range(nwalkers):
+                plt.plot(chain[i, :, j])
         plt.xlabel('Step Number')
         plt.ylabel('{}'.format(par))
-        plt.savefig('%s-%d-walker-dim%d.png' % (prefix,objid, j))
+        plt.savefig('%s-walker-%s.png' % (prefix, par))
+
+    return best, bestln
 
 
 def main():
