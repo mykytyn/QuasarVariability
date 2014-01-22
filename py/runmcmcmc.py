@@ -10,8 +10,8 @@ import stripe82
 for i,obj in enumerate(open('targets.txt')):
     obj = int(obj)
     print obj
-    num_runs = 5
-    num_steps = 250
+    num_runs = 15
+    num_steps = 1000
     prefix = 'walker_test'
     #prefix2 = 'alpha-notau-{}'.format(obj)
     init_path = '/home/dwm261/QuasarVariability/py'

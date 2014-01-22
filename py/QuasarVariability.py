@@ -10,7 +10,7 @@ import triangle
 import stripe82
 
 init_tau = 50.
-wavelengths = [3543.,4770.,6231.,7625.,9134.]
+wavelengths = [3543., 4770., 6231., 7625., 9134.]
 base = 2
 
 
@@ -73,7 +73,7 @@ class RandomWalk:
         if self.fixedTau:
             amps = self.get_pars()
         else:
-            amps,tau = self.get_pars()
+            amps, tau = self.get_pars()
             prior += utils.ln_1d_gauss(tau, 5., 2.)
         for a in amps:
             prior += utils.ln_1d_gauss(a, -1. ,1)
@@ -95,8 +95,11 @@ class RandomWalk:
 class RandomWalkAlpha:
     def __init__(self, a_r, alpha, tau, wavelengths, base, fixedTau = False):
         """
-        Inputs: a: amplitudes of each band
+        Inputs: a_r: amplitude of the base band
+                alpha: exponent for the amplitudes
                 tau: scalar of time scale (in days)
+                wavelengths: wavelengths of the different bands
+                base: which band is the base (index)
         Outputs: None
         Comments: Damped random walk model
         """
@@ -176,8 +179,14 @@ class RandomWalkAlpha:
 class newRandomWalk:
     def __init__(self, a_r, alpha, tau_r, beta, delta_r, gamma, wavelengths, base):
         """
-        Inputs: a: amplitudes of each band
-                tau: scalar of time scale (in days)
+        Inputs: a_r: amplitude of the base band
+                alpha: exponent for the amplitudes
+                tau_r: scalar of time scale in the base band (in days)
+                beta: exponent for the taus
+                delta_r: time shift for the base band
+                gamma: exponent for the time shifts
+                wavelengths: wavelengths of the different bands
+                base: which band is the base (index)
         Outputs: None
         Comments: Damped random walk model
         """
@@ -190,9 +199,12 @@ class newRandomWalk:
         self.gamma = gamma
         self.wavelengths = wavelengths
         self.base = base
-        self.a = np.array([self._get_coef(x,a_r,alpha) for x in range(len(self.wavelengths))])
-        self.tau = np.array([self._get_coef(x,tau_r,beta) for x in range(len(self.wavelengths))])
-        self.delta = np.array([self._get_coef(x,delta_r,gamma) for x in range(len(self.wavelengths))])
+        self.a = np.array([self._get_coef(x, a_r, alpha) 
+                           for x in range(len(self.wavelengths))])
+        self.tau = np.array([self._get_coef(x, tau_r, beta) 
+                             for x in range(len(self.wavelengths))])
+        self.delta = np.array([self._get_coef(x, delta_r, gamma) 
+                               for x in range(len(self.wavelengths))])
 
 
     def _get_coef(self, band, coef, exponent):
@@ -201,7 +213,8 @@ class newRandomWalk:
 
     def _get_cross_term_matrix(self, t1, b1, t2, b2):
         return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
-                         np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]] - self.delta[b2[None,:]])) / np.sqrt(self.tau[b1[:, None]] * self.tau[b2[None,:]])))
+                         np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]] - self.delta[b2[None,:]]))
+                                 / np.sqrt(self.tau[b1[:, None]] * self.tau[b2[None,:]])))
 
     def get_variance_tensor(self, times, bands, sigmas=None):
         """
@@ -227,9 +240,12 @@ class newRandomWalk:
         self.beta = pars[3]
         self.delta_r = pars[4]
         self.gamma = pars[5]
-        self.a = np.array([self._get_coef(x,self.a_r,self.alpha) for x in range(len(self.wavelengths))])
-        self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) for x in range(len(self.wavelengths))])
-        self.delta = np.array([self._get_coef(x,self.delta_r,self.gamma) for x in range(len(self.wavelengths))])
+        self.a = np.array([self._get_coef(x, self.a_r, self.alpha) 
+                           for x in range(len(self.wavelengths))])
+        self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) 
+                             for x in range(len(self.wavelengths))])
+        self.delta = np.array([self._get_coef(x,self.delta_r,self.gamma) 
+                               for x in range(len(self.wavelengths))])
 
     def get_pars(self):
         return self.a_r, self.alpha, self.tau_r, self.beta, self.delta_r, self.gamma
@@ -252,7 +268,7 @@ class newRandomWalk:
     def get_labels(self):
         return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
                 'ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r',
-                'gamma', 'ln_prob']
+                'gamma']
 
 
 class QuasarVariability:
@@ -406,12 +422,10 @@ class QuasarVariability:
         return self.get_covar().get_labels()
 
 
-    
-
-
 def temp_ln(pars, mags, times, bands, sigmas, alpha=False, noTau=False, newCovar=False):
     if newCovar:
-        tempObj = QuasarVariability(newRandomWalk(-1.,-1.,init_tau,-1.,0.,-1.,wavelengths,base), pars[0:5])
+        tempObj = QuasarVariability(newRandomWalk(-1., -1., init_tau, -1., 0., -1., wavelengths, base), 
+                                    pars[0:5])
     elif alpha:
         tempObj = QuasarVariability(RandomWalkAlpha(
                 np.exp(pars[5]), np.exp(pars[6]), init_tau,
@@ -423,9 +437,8 @@ def temp_ln(pars, mags, times, bands, sigmas, alpha=False, noTau=False, newCovar
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
-
-
-def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCovar=False):
+def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, 
+             alpha=False, newCovar=False):
     mags = data.get_mags()
     sigmas = data.get_sigmas()
     bands = data.get_bands()
@@ -436,7 +449,7 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCo
     initialtime = np.min(times) - 50
     finaltime = np.max(times) + 50
     timegrid, bandgrid = utils.make_band_time_grid(initialtime, finaltime,
-                                                       dt, bandnames)
+                                                   dt, bandnames)
     if newCovar:
         init_means = initialp0[0:5]
         init_a_r = initialp0[5]
@@ -446,20 +459,20 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCo
         init_delta_r = initialp0[9]
         init_gamma = initialp0[10]
     if alpha:
-        qv = QuasarVariability(RandomWalkAlpha(amps[2],-1.,init_tau, wavelengths, base, noTau), means)
+        qv = QuasarVariability(RandomWalkAlpha(amps[2], -1., init_tau,
+                                               wavelengths, base, noTau),
+                               means)
     elif newCovar:
-        qv = QuasarVariability(newRandomWalk(init_a_r,init_alpha,
-                                             init_tau_r,init_beta,init_delta_r,init_gamma,wavelengths,base), init_means)
+        qv = QuasarVariability(newRandomWalk(init_a_r, init_alpha,
+                                             init_tau_r, init_beta,
+                                             init_delta_r, init_gamma,
+                                             wavelengths, base), init_means)
     else:
         qv = QuasarVariability(RandomWalk(amps, init_tau, noTau), means)
 
-    if alpha:
-        ndim = 8 - noTau
-    elif newCovar:
-        ndim = 11
-    else:
-        ndim = 11 - noTau
-
+    labels = qv.get_labels()
+    ndim = len(labels)
+    labels.append('ln_prob')
     nwalkers = 32
     nthreads = 10
 
@@ -470,21 +483,22 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCo
     for i in range(nwalkers):  # could probably be improved -mykytyn
         pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
         initial.append(pp)
-    arguments = [mags,times, bands, sigmas, alpha, noTau, newCovar]
+    arguments = [mags, times, bands, sigmas, alpha, noTau, newCovar]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
                                     args=arguments, threads=nthreads)
 
     pos, prob, state = sampler.run_mcmc(initial, 1)
     sampler.reset()
     pos, prob, state = sampler.run_mcmc(pos, num_steps)
-    labels = qv.get_labels()
 
+    #NOT MODULAR - FIX
     highln = np.argmax(sampler.lnprobability)
     best = sampler.flatchain[highln]
     bestln = sampler.lnprobability.flatten()[highln]
     best[5] = np.exp(best[5])
     best[7] = np.exp(best[7])
-    trichain = np.column_stack((sampler.flatchain, sampler.lnprobability.flatten()))
+    trichain = np.column_stack((sampler.flatchain,
+                                sampler.lnprobability.flatten()))
 
     figure = triangle.corner(trichain, labels=labels)
     figure.savefig('%s-triangle.png' % (prefix))
@@ -498,8 +512,8 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCo
     #psig = np.sqrt(np.diag(np.array(Vpp)))
     #utils.make_posterior_plots(quasarsamp, times, mags, bands, sigmas, timegrid, bandgrid, pmean, psig, means, bandnames)
     #plt.savefig('{}-{}-posterior.png'.format(prefix,objid))
-    
-    for j,par in enumerate(labels):
+
+    for j, par in enumerate(labels):
         plt.clf()
         if par == "ln_prob":
             for i in range(nwalkers):
@@ -512,14 +526,3 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, alpha=False, newCo
         plt.savefig('%s-walker-%s.png' % (prefix, par))
 
     return best, bestln
-
-
-def main():
-    #obj = 588015509825912905  # lot of data
-    #obj = 587730845812064296  # less data
-
-    for obj in open('targets.txt'):
-        run_mcmc(int(obj), 'targets')
-
-if __name__ == '__main__':
-    main()
