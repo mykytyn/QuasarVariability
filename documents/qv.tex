@@ -333,7 +333,9 @@ is one value of $a(b)$ and one value of $\mu(b)$ for each possible
 value of the bandpass $b$.  Because everything is Gaussian, the latent
 ersatz magnitudes never have to be explicitly inferred individually;
 they can all be marginalized out analytically.
-
+\\
+NOTE: The text no longer matches the equations! Will work on this but thought I should mention this! -mykytyn\\
+\\
 This marginalization (to remove all explicit mention of the ersatz
 variable $q$) leads to the following very simple covariance function
 for the data:
@@ -345,7 +347,7 @@ p(m) &=& N(m\given \mu,V)
 \\
 \transpose{\mu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_N)]
 \\
-V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}|}{\tau} + \sigma_n^2\,\delta_{nn'}
+V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}+\delta(b_n)*\delta(b_{n'})|}{\sqrt{\tau(b_n)*\tau(b_{n'})}} + \sigma_n^2\,\delta_{nn'}
 \label{eq:likeend}
 \quad ,
 \end{eqnarray}
@@ -388,9 +390,9 @@ p(\tilde{m}|m) &=& N(\tilde{m}|\tilde{\mu},\tilde{V})
 \\
 \transpose{\nu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_K)]
 \\
-X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n|}{\tau}
+X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n + \delta(b_k) * \delta(b_n)|}{\sqrt{\tau(b_k)*\tau(b_n)}}
 \\
-Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}|}{\tau} + \sigma_k^2\,\delta_{kk'}
+Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}+\delta(b_k) * \delta(b_{k'})|}{\sqrt{\tau(b_k)*\tau(b_{k'})}} + \sigma_k^2\,\delta_{kk'}
 \quad ,
 \end{eqnarray}
 where $\tilde{m}$ is the column vector of conditional predictions,
