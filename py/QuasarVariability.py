@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 if __name__ == '__main__':
     import matplotlib
     matplotlib.use('Agg')
@@ -30,7 +31,7 @@ class RandomWalk:
         self.fixedTau = fixedTau
 
     def _get_kernal_matrix(self, t1, b1, t2, b2):
-        return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
+        return np.array(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1. / self.tau * np.abs(t1[:, None] -
                                                         t2[None, :])))
 
@@ -115,7 +116,7 @@ class RandomWalkAlpha:
         return coef
 
     def _get_kernal_matrix(self, t1, b1, t2, b2):
-        return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
+        return np.array(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1. / self.tau * np.abs(t1[:, None] -
                                                         t2[None, :])))
 
@@ -214,7 +215,7 @@ class newRandomWalk:
         return coef
 
     def _get_kernal_matrix(self, t1, b1, t2, b2):
-        return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
+        return np.array(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]] - self.delta[b2[None,:]]))
                                  / np.sqrt(self.tau[b1[:, None]] * self.tau[b2[None,:]])))
 
@@ -340,7 +341,7 @@ class QuasarVariability:
         """
         Comments: This propogates the means at each band at each time
         """
-        return np.matrix(self.get_mean()[bands]).transpose()
+        return np.array([self.get_mean()[bands]]).T
     
     def get_prior_sample(self, times, bands):
         """
@@ -357,8 +358,8 @@ class QuasarVariability:
     def _ln_multivariate_gaussian(self, x, mu, V):
         """
         Compute log of Nd Gaussian
-        Inputs: x is the variable (as a numpy matrix)[column vector]
-        mu is the mean (as a numpy matrix)[column vector]
+        Inputs: x is the variable (as a numpy 2d array)[column vector]
+        mu is the mean (as a numpy 2darray)[column vector]
         V is the variance matrix
         Output: Natural log of the gaussian evalulated at x
         NOTE: there must be a way to compute determinant/inverse faster
@@ -368,7 +369,7 @@ class QuasarVariability:
         try:
             sign, logdet = np.linalg.slogdet(V)
             assert sign > 0
-            return -0.5 * logdet + -0.5 * dx.getT() * V.getI() * dx
+            return -0.5 * logdet + -0.5 * np.dot(np.dot(dx.T, np.linalg.inv(V)), dx)
         except:
             print "SINGULAR OR NEGATIVE:"
             print "Sign, logdet:   ", sign, logdet
@@ -386,7 +387,7 @@ class QuasarVariability:
                 The ln of the likelihood function
         """
         return self._ln_multivariate_gaussian(
-            np.matrix(mags).getT(),
+            np.array([mags]).T,
             self.get_mean_vector(times, bands),
             self.get_variance_tensor(times, bands, sigmas))
 
@@ -412,12 +413,10 @@ class QuasarVariability:
         """
         Vpo = self.covar._get_kernal_matrix(ptimes, pbands, times, bands)
         Voo = self.covar.get_variance_tensor(times, bands, sigmas)
-        VooI = Voo.getI()
+        VooI = np.linalg.inv(Voo)
         Vpp = self.covar.get_variance_tensor(ptimes, pbands)
-        pmean = (Vpo * VooI * (np.matrix(mags).getT() -
-                               self.get_mean_vector(times, bands))
-                 + self.get_mean_vector(ptimes, pbands))
-        Vpp = Vpp - Vpo * VooI * Vpo.getT()
+        pmean = np.dot(np.dot(Vpo, VooI), (np.array([mags]).T - self.get_mean_vector(times, bands))) + self.get_mean_vector(ptimes, pbands)
+        Vpp = Vpp - np.dot(np.dot(Vpo,VooI),Vpo.T)
         return pmean, Vpp
 
     def get_conditional_sample(self, ptimes, pbands, mags, times, bands,
@@ -499,9 +498,10 @@ def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False
     ndim = len(labels)
     labels.append('ln_prob')
     nwalkers = 32
-    nthreads = 10
+    nthreads = 1
 
-    p0 = qv.pack_pars()
+    #p0 = qv.pack_pars()
+    p0 = initialp0
     print p0
 
     initial = []
