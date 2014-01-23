@@ -29,7 +29,7 @@ class RandomWalk:
         self.set_pars(pars)
         self.fixedTau = fixedTau
 
-    def _get_cross_term_matrix(self, t1, b1, t2, b2):
+    def _get_kernal_matrix(self, t1, b1, t2, b2):
         return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1. / self.tau * np.abs(t1[:, None] -
                                                         t2[None, :])))
@@ -44,7 +44,7 @@ class RandomWalk:
                 the variance tensor
         Comments:
         """
-        tt = self._get_cross_term_matrix(times, bands, times, bands)
+        tt = self._get_kernal_matrix(times, bands, times, bands)
         if sigmas is None:
             return tt
         assert len(sigmas) == len(times)
@@ -114,7 +114,7 @@ class RandomWalkAlpha:
         coef =  self.a_r * ((self.wavelengths[band] / self.wavelengths[self.base]) ** self.alpha)
         return coef
 
-    def _get_cross_term_matrix(self, t1, b1, t2, b2):
+    def _get_kernal_matrix(self, t1, b1, t2, b2):
         return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1. / self.tau * np.abs(t1[:, None] -
                                                         t2[None, :])))
@@ -129,7 +129,7 @@ class RandomWalkAlpha:
                 the variance tensor
         Comments:
         """
-        tt = self._get_cross_term_matrix(times, bands, times, bands)
+        tt = self._get_kernal_matrix(times, bands, times, bands)
         if sigmas is None:
             return tt
         assert len(sigmas) == len(times)
@@ -199,7 +199,7 @@ class newRandomWalk:
         coef =  coef * ((self.wavelengths[band] / self.wavelengths[self.base]) ** exponent)
         return coef
 
-    def _get_cross_term_matrix(self, t1, b1, t2, b2):
+    def _get_kernal_matrix(self, t1, b1, t2, b2):
         return np.matrix(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]] - self.delta[b2[None,:]]))
                                  / np.sqrt(self.tau[b1[:, None]] * self.tau[b2[None,:]])))
@@ -214,7 +214,7 @@ class newRandomWalk:
                 the variance tensor
         Comments:
         """
-        tt = self._get_cross_term_matrix(times, bands, times, bands)
+        tt = self._get_kernal_matrix(times, bands, times, bands)
         if sigmas is None:
             return tt
         assert len(sigmas) == len(times)
@@ -366,7 +366,7 @@ class QuasarVariability:
         Outputs: pmean: mean at ptimes
                  Vpp: covariance matrix
         """
-        Vpo = self.covar._get_cross_term_matrix(ptimes, pbands, times, bands)
+        Vpo = self.covar._get_kernal_matrix(ptimes, pbands, times, bands)
         Voo = self.covar.get_variance_tensor(times, bands, sigmas)
         VooI = Voo.getI()
         Vpp = self.covar.get_variance_tensor(ptimes, pbands)
