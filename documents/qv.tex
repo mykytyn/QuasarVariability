@@ -133,7 +133,7 @@ al. 2009, Butler and Bloom parametrize the quasar structure function
 in Stripe 82 as a function of observed brightness. The covariance
 matrix used is
 \begin{eqnarray}
-C_{ij}=\sigma_i^2 \delta_{ij} + \frac{1}{2}\hat{\sigma}^2 \tau_0 \exp
+C_{ij}=\sigma_i^2 \Delta_{ij} + \frac{1}{2}\hat{\sigma}^2 \tau_0 \exp
 \left(-\frac{\tau_{ij}}{\tau_0}\right),
 \end{eqnarray}
 where $\sigma_i$ is the measurement uncertainty, $\tau_{ij}=t_i=t_j$
@@ -333,9 +333,19 @@ is one value of $a(b)$ and one value of $\mu(b)$ for each possible
 value of the bandpass $b$.  Because everything is Gaussian, the latent
 ersatz magnitudes never have to be explicitly inferred individually;
 they can all be marginalized out analytically.
+
+We generate our individual band amplitudes and time shifts using
+\begin{eqnarray}
+a(b_n) = a_r * (\frac{\lambda(b_n)}{\lambda(b_r)})^\alpha
 \\
-NOTE: The text no longer matches the equations! Will work on this but thought I should mention this! -mykytyn\\
-\\
+\Delta(b_n) = \Delta_r * (\frac{\lambda(b_n)}{\lambda(b_r)})^\gamma
+\quad ,
+\end{eqnarray}
+where here $\alpha$ is our exponent for the amplitudes, and $r$ is the band we have chosen to work in as our base band. $\lambda$ is the respective wavelength for each band. $\gamma$ here is our exponent for the time shifts for each band.
+
+
+NOTE: The text no longer matches the equations! Will work on this but thought I should mention this! -mykytyn
+
 This marginalization (to remove all explicit mention of the ersatz
 variable $q$) leads to the following very simple covariance function
 for the data:
@@ -347,7 +357,7 @@ p(m) &=& N(m\given \mu,V)
 \\
 \transpose{\mu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_N)]
 \\
-V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}+\delta(b_n)*\delta(b_{n'})|}{\sqrt{\tau(b_n)*\tau(b_{n'})}} + \sigma_n^2\,\delta_{nn'}
+V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}+\Delta(b_n)*\Delta(b_{n'})|}{\sqrt{\tau(b_n)*\tau(b_{n'})}} + \sigma_n^2\,\Delta_{nn'}
 \label{eq:likeend}
 \quad ,
 \end{eqnarray}
@@ -390,9 +400,9 @@ p(\tilde{m}|m) &=& N(\tilde{m}|\tilde{\mu},\tilde{V})
 \\
 \transpose{\nu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_K)]
 \\
-X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n + \delta(b_k) * \delta(b_n)|}{\sqrt{\tau(b_k)*\tau(b_n)}}
+X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n + \Delta(b_k) * \delta(b_n)|}{\sqrt{\tau(b_k)*\tau(b_n)}}
 \\
-Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}+\delta(b_k) * \delta(b_{k'})|}{\sqrt{\tau(b_k)*\tau(b_{k'})}} + \sigma_k^2\,\delta_{kk'}
+Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}+\Delta(b_k) * \Delta(b_{k'})|}{\sqrt{\tau(b_k)*\tau(b_{k'})}} + \sigma_k^2\,\Delta_{kk'}
 \quad ,
 \end{eqnarray}
 where $\tilde{m}$ is the column vector of conditional predictions,
