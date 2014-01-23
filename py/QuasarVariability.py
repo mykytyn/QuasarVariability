@@ -175,7 +175,7 @@ class RandomWalkAlpha:
 
 
 class newRandomWalk:
-    def __init__(self, pars, wavelengths, base):
+    def __init__(self, pars, onofflist, wavelengths, base):
         """
         Inputs: pars, as a list containing:
         log(a_r): amplitude of the base band
@@ -193,7 +193,21 @@ class newRandomWalk:
         """
         self.wavelengths = wavelengths
         self.base = base
-        self.set_pars(pars)
+        self.onofflist = onofflist
+        self.a_r = np.exp(pars[0])
+        self.alpha = pars[1]
+        assert not np.isnan(self.alpha)
+        self.tau_r = np.exp(pars[2])
+        self.beta = pars[3]
+        self.delta_r = pars[4]
+        self.gamma = pars[5]
+        self.a = np.array([self._get_coef(x, self.a_r, self.alpha) 
+                           for x in range(len(self.wavelengths))])
+        self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) 
+                             for x in range(len(self.wavelengths))])
+        self.delta = np.array([self._get_coef(x,self.delta_r,self.gamma) 
+                               for x in range(len(self.wavelengths))])
+        self.par_list = [self.a_r, self.alpha, self.tau_r, self.beta, self.delta_r, self.gamma]
 
     def _get_coef(self, band, coef, exponent):
         coef =  coef * ((self.wavelengths[band] / self.wavelengths[self.base]) ** exponent)
@@ -221,13 +235,26 @@ class newRandomWalk:
         return tt + np.diag(sigmas ** 2)
 
     def set_pars(self, pars):
-        self.a_r = np.exp(pars[0])
-        self.alpha = pars[1]
-        assert not np.isnan(self.alpha)
-        self.tau_r = np.exp(pars[2])
-        self.beta = pars[3]
-        self.delta_r = pars[4]
-        self.gamma = pars[5]
+        counter = 0
+        if self.onofflist[0]:
+            self.a_r = np.exp(pars[counter])
+            counter += 1
+        if self.onofflist[1]:
+            self.alpha = pars[counter]
+            counter += 1
+            assert not np.isnan(self.alpha)
+        if self.onofflist[2]:
+            self.tau_r = np.exp(pars[counter])
+            counter += 1
+        if self.onofflist[3]:
+            self.beta = pars[counter]
+            counter += 1
+        if self.onofflist[4]:
+            self.delta_r = pars[counter]
+            counter += 1
+        if self.onofflist[5]:
+            self.gamma = pars[counter]
+            counter += 1
         self.a = np.array([self._get_coef(x, self.a_r, self.alpha) 
                            for x in range(len(self.wavelengths))])
         self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) 
@@ -239,24 +266,39 @@ class newRandomWalk:
         return self.a_r, self.alpha, self.tau_r, self.beta, self.delta_r, self.gamma
 
     def get_packed_pars(self):
-        return np.log(self.a_r), self.alpha, np.log(self.tau_r), self.beta, self.delta_r, self.gamma
+        packs = []
+        for i, par, status in zip(range(len(self.par_list)), self.par_list, self.onofflist):
+            if status:
+                if i == 0 or i==2:
+                    packs.append(np.log(par))
+                else:
+                    packs.append(par)
+        return packs
 
     def get_priors(self):
         #TODO: FIX PRIORS OK
         prior = 0
         a_r, alpha, tau_r, beta, delta_r, gamma = self.get_pars()
-        prior += utils.ln_1d_gauss(tau_r, 5., 2.)
-        prior += utils.ln_1d_gauss(beta, -1., .25)
-        prior += utils.ln_1d_gauss(delta_r, 0., 1.)
-        prior += utils.ln_1d_gauss(gamma, -1., .25)
-        prior += utils.ln_1d_gauss(a_r, -1. ,1.)
-        prior += utils.ln_1d_gauss(alpha, -1., .25)
+        if self.onofflist[0]:
+            prior += utils.ln_1d_gauss(a_r, -1. ,1.)
+        if self.onofflist[1]:
+            prior += utils.ln_1d_gauss(alpha, -1., .25)
+        if self.onofflist[2]:
+            prior += utils.ln_1d_gauss(tau_r, 5., 2.)
+        if self.onofflist[3]:
+            prior += utils.ln_1d_gauss(beta, -1., .25)
+        if self.onofflist[4]:
+            prior += utils.ln_1d_gauss(delta_r, 0., 1.)
+        if self.onofflist[5]:
+            prior += utils.ln_1d_gauss(gamma, -1., .25)
         return prior
 
     def get_labels(self):
-        return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                'ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r',
-                'gamma']
+        labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z']
+        for status, par in zip(self.onofflist, ['ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r', 'gamma']):
+            if status: 
+                labels.append(par)
+        return labels
 
 
 class QuasarVariability:
@@ -328,8 +370,10 @@ class QuasarVariability:
             assert sign > 0
             return -0.5 * logdet + -0.5 * dx.getT() * V.getI() * dx
         except:
-            print sign, logdet
-            print self.get_covar().get_pars()
+            print "SINGULAR OR NEGATIVE:"
+            print "Sign, logdet:   ", sign, logdet
+            print "Parameters:  ", self.get_covar().get_pars()
+            print "Eigenvalues of Kernal with Sigmas: ", np.linalg.eig(V)
             raise
 
     def ln_likelihood(self, mags, times, bands, sigmas):
@@ -413,21 +457,21 @@ class QuasarVariability:
         return self.get_covar().get_labels()
 
 
-def temp_ln(pars, mags, times, bands, sigmas, alpha=False, noTau=False, newCovar=False):
+def temp_ln(pars, mags, times, bands, sigmas, default_pars, onofflist, alpha=False, noTau=False, newCovar=False):
     if newCovar:
-        tempObj = QuasarVariability(newRandomWalk(pars[5:], wavelengths, base), 
-                                    pars[0:5])
+        tempObj = QuasarVariability(newRandomWalk(default_pars[5:], onofflist, wavelengths, base), 
+                                    default_pars[0:5])
     elif alpha:
         tempObj = QuasarVariability(RandomWalkAlpha(
-                pars[5:], wavelengths, base, noTau),
-                                    pars[0:5])
+                default_pars[5:], onofflist, wavelengths, base, noTau),
+                                    default_pars[0:5])
     else:
         tempObj = QuasarVariability(RandomWalk(
-                pars[5:,], noTau, wavelengths, base), pars[0:5])
+                default_pars[5:,], onofflist, noTau, wavelengths, base), default_pars[0:5])
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
-def run_mcmc(data, prefix, num_steps, initialp0, noTau=False, 
+def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False, 
              alpha=False, newCovar=False):
     mags = data.get_mags()
     sigmas = data.get_sigmas()
@@ -441,21 +485,21 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False,
         initialtime, finaltime, dt, bandnames)
     if alpha:
         qv = QuasarVariability(
-            RandomWalkAlpha(initialp0[5:],
+            RandomWalkAlpha(initialp0[5:], onofflist,
                             wavelengths, base, noTau),
             initialp0[:5])
     elif newCovar:
         qv = QuasarVariability(
-            newRandomWalk(initialp0[5:],
-                          wavelengths, base), initialp0[:5])
+            newRandomWalk(default[5:], onofflist,
+                          wavelengths, base), default[:5])
     else:
-        qv = QuasarVariability(RandomWalk(initialp0[5:], wavelengths, base), initialp0[:5])
+        qv = QuasarVariability(RandomWalk(default[5:], onofflist, wavelengths, base), default[:5])
 
     labels = qv.get_labels()
     ndim = len(labels)
     labels.append('ln_prob')
     nwalkers = 32
-    nthreads = 1
+    nthreads = 10
 
     p0 = qv.pack_pars()
     print p0
@@ -464,7 +508,7 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False,
     for i in range(nwalkers):  # could probably be improved -mykytyn
         pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
         initial.append(pp)
-    arguments = [mags, times, bands, sigmas, alpha, noTau, newCovar]
+    arguments = [mags, times, bands, sigmas, default, onofflist, alpha, noTau, newCovar]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
                                     args=arguments, threads=nthreads)
 
@@ -505,4 +549,4 @@ def run_mcmc(data, prefix, num_steps, initialp0, noTau=False,
         plt.ylabel('{}'.format(par))
         plt.savefig('%s-walker-%s.png' % (prefix, par))
 
-    return best, bestln
+    return best, bestln, labels
