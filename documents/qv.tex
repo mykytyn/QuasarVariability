@@ -336,12 +336,14 @@ they can all be marginalized out analytically.
 
 We generate our individual band amplitudes and time shifts using
 \begin{eqnarray}
-a(b_n) = a_r * (\frac{\lambda(b_n)}{\lambda(b_r)})^\alpha
+a(b_n) &=& a_r(\frac{\lambda(b_n)}{\lambda(b_r)})^\alpha
 \\
-\Delta(b_n) = \Delta_r * (\frac{\lambda(b_n)}{\lambda(b_r)})^\gamma
+\tau(b_n) &=& \tau_r(\frac{\lambda(b_n)}{\lambda(b_r)})^\beta
+\\
+\Delta(b_n) &=& \Delta_r(\frac{\lambda(b_n)}{\lambda(b_r)})^\gamma
 \quad ,
 \end{eqnarray}
-where here $\alpha$ is our exponent for the amplitudes, and $r$ is the band we have chosen to work in as our base band. $\lambda$ is the respective wavelength for each band. $\gamma$ here is our exponent for the time shifts for each band.
+where here $\alpha$ is our exponent for the amplitudes, and $r$ is the band we have chosen to work in as our base band. $\lambda$ is the respective wavelength for each band. $\gamma$ here is our exponent for the time shifts for each band and $\beta$ is the exponent for the time lengths. (NOTE: THIS IS CURRENTLY SET AT ZERO, MIGHT BE REMOVED?)
 
 
 NOTE: The text no longer matches the equations! Will work on this but thought I should mention this! -mykytyn
@@ -418,9 +420,11 @@ data.  We show an example of conditional predictions in
 \figurename~\ref{fig:conditional}
 
 \section{Inference}
-The priors we used were for the amplitudes in ln space were Gaussians of length x centered at y 
-For tau we used a Guassian prior of length x centered at y.
-We used no priors for our means.
+We used no priors for our means. (Should we? -mykytyn))
+
+For our $\log(a_r)$ hyperparameter we used a prior of a Gaussian centered at $-1$ with a variance of $1$. For $\alpha$ our prior was a Gaussian centered at $-1$ and a variance of $.25$. For $\log(\tau_r)$ we used a Gaussian centered at $5$ and a variance of $2$. For $\delta_r$ we used a Gaussian with a mean of $0$ and a variance of $1$. For $\gamma$ we used a Gaussian with a mean of $-1$ and a variance of $.25$. 
+
+Mykytyn Notes: is the prior for $log(a_r)$ right?
 
 The initial values we found were found using a gridsearch in each band.
 
