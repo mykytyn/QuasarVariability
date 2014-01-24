@@ -1,5 +1,5 @@
 import numpy as np
-import scipy as sp
+from scipy import linalg
 if __name__ == '__main__':
     import matplotlib
     matplotlib.use('Agg')
@@ -367,12 +367,13 @@ class QuasarVariability:
         assert len(x) == len(mu) == V.shape[0] == V.shape[1]
         dx = x - mu
         try:
-            sign, logdet = np.linalg.slogdet(V)
-            assert sign > 0
-            return -0.5 * logdet + -0.5 * np.dot(np.dot(dx.T, np.linalg.inv(V)), dx)
+            L = linalg.cholesky(V, lower=True)
+            alpha = linalg.cho_solve((L.T, False), linalg.cho_solve((L, True), dx))
+            #assert np.all(np.abs(np.dot(L,L.T) - V) < 10**-8)
+            logdet = 2*np.linalg.slogdet(L)[1]
+            #assert logdet - np.linalg.slogdet(V)[1] < 10**-8
+            return -.5 * logdet + -0.5 * np.dot(dx.T, alpha)
         except:
-            print "SINGULAR OR NEGATIVE:"
-            print "Sign, logdet:   ", sign, logdet
             print "Parameters:  ", self.get_covar().get_pars()
             print "Eigenvalues of Kernal with Sigmas: ", np.linalg.eig(V)
             raise
