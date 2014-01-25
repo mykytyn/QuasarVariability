@@ -471,8 +471,7 @@ def temp_ln(pars, mags, times, bands, sigmas, default_pars, onofflist, alpha=Fal
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
-def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False, 
-             alpha=False, newCovar=False):
+def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False, alpha=False, newCovar=False, nthreads=1):
     mags = data.get_mags()
     sigmas = data.get_sigmas()
     bands = data.get_bands()
@@ -499,7 +498,6 @@ def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False
     ndim = len(labels)
     labels.append('ln_prob')
     nwalkers = 32
-    nthreads = 1
 
     #p0 = qv.pack_pars()
     p0 = initialp0
@@ -530,6 +528,8 @@ def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False
     plt.clf()
     chain = sampler.chain
     sample = sampler.flatchain[-1, :]
+
+    print "acor: ", sampler.acor
 
     #quasarsamp = QuasarVariability(RandomWalk(sample[0:5],init_tau),sample[5:10])
     #pmean, Vpp = quasarsamp.get_conditional_mean_and_variance(timegrid,bandgrid,mags,times,bands, sigmas)
