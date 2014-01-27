@@ -471,7 +471,7 @@ def temp_ln(pars, mags, times, bands, sigmas, default_pars, onofflist, alpha=Fal
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
-def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False, alpha=False, newCovar=False, nthreads=1):
+def run_mcmc(data, num_steps, initialp0, default, onofflist, noTau=False, alpha=False, newCovar=False, nthreads=1, nwalkers=32):
     mags = data.get_mags()
     sigmas = data.get_sigmas()
     bands = data.get_bands()
@@ -497,7 +497,6 @@ def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False
     labels = qv.get_labels()
     ndim = len(labels)
     labels.append('ln_prob')
-    nwalkers = 32
 
     #p0 = qv.pack_pars()
     p0 = initialp0
@@ -511,25 +510,9 @@ def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
                                     args=arguments, threads=nthreads)
 
-    pos, prob, state = sampler.run_mcmc(initial, 1)
-    sampler.reset()
-    pos, prob, state = sampler.run_mcmc(pos, num_steps)
+    pos, prob, state = sampler.run_mcmc(initial, num_steps)
 
-    highln = np.argmax(sampler.lnprobability)
-    best = sampler.flatchain[highln]
-    bestln = sampler.lnprobability.flatten()[highln]
-    #best[5] = np.exp(best[5])
-    #best[7] = np.exp(best[7])
-    trichain = np.column_stack((sampler.flatchain,
-                                sampler.lnprobability.flatten()))
-
-    figure = triangle.corner(trichain, labels=labels)
-    figure.savefig('%s-triangle.png' % (prefix))
-    plt.clf()
-    chain = sampler.chain
-    sample = sampler.flatchain[-1, :]
-
-    print "acor: ", sampler.acor
+    return sampler, labels, pos, prob, state
 
     #quasarsamp = QuasarVariability(RandomWalk(sample[0:5],init_tau),sample[5:10])
     #pmean, Vpp = quasarsamp.get_conditional_mean_and_variance(timegrid,bandgrid,mags,times,bands, sigmas)
@@ -537,17 +520,3 @@ def run_mcmc(data, prefix, num_steps, initialp0, default, onofflist, noTau=False
     #psig = np.sqrt(np.diag(np.array(Vpp)))
     #utils.make_posterior_plots(quasarsamp, times, mags, bands, sigmas, timegrid, bandgrid, pmean, psig, means, bandnames)
     #plt.savefig('{}-{}-posterior.png'.format(prefix,objid))
-
-    for j, par in enumerate(labels):
-        plt.clf()
-        if par == "ln_prob":
-            for i in range(nwalkers):
-                plt.plot(sampler.lnprobability[i, :])
-        else:
-            for i in range(nwalkers):
-                plt.plot(chain[i, :, j])
-        plt.xlabel('Step Number')
-        plt.ylabel('{}'.format(par))
-        plt.savefig('%s-walker-%s.png' % (prefix, par))
-
-    return best, bestln, labels

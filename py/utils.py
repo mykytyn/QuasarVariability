@@ -2,13 +2,35 @@ import numpy as np
 import random
 import pyfits as pyf
 import matplotlib
-if __name__ == '__main__':
-    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import random
+import triangle
 
-#I've been editing this code, some functions might not work
-#contact me if you need them to work -mykytyn
+def make_triangle_plot(sampler, labels):
+    trichain = np.column_stack((sampler.flatchain, sampler.lnprobability.flatten()))
+    return triangle.corner(trichain, labels=labels)
+
+def get_best_lnprob(sampler):
+    highln = np.argmax(sampler.lnprobability)
+    return sampler.flatchain[highln], sampler.lnprobability.flatten()[highln]
+
+def make_walker_plots(sampler, labels, nwalkers):
+    plots = []
+    for j,par in enumerate(labels):
+        fig = plt.figure()
+        axis = fig.gca()
+        if par == "ln_prob":
+            for i in range(nwalkers):
+                axis.plot(sampler.lnprobability[i, :])
+        else:
+            for i in range(nwalkers):
+                axis.plot(sampler.chain[i, :, j])
+        axis.set_xlabel('Step Number')
+        axis.set_ylabel('{}'.format(par))
+        plots.append(fig)
+    return plots
+
+            
 
 
 def make_band_time_grid(inittime, finaltime, dt, bandlist):
