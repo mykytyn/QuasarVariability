@@ -338,15 +338,10 @@ We generate our individual band amplitudes and time shifts using
 \begin{eqnarray}
 a(b_n) &=& a_r(\frac{\lambda(b_n)}{\lambda(b_r)})^\alpha
 \\
-\tau(b_n) &=& \tau_r(\frac{\lambda(b_n)}{\lambda(b_r)})^\beta
-\\
 \Delta(b_n) &=& \Delta_r(\frac{\lambda(b_n)}{\lambda(b_r)})^\gamma
 \quad ,
 \end{eqnarray}
-where here $\alpha$ is our exponent for the amplitudes, and $r$ is the band we have chosen to work in as our base band. $\lambda$ is the respective wavelength for each band. $\gamma$ here is our exponent for the time shifts for each band and $\beta$ is the exponent for the time lengths. (NOTE: THIS IS CURRENTLY SET AT ZERO, MIGHT BE REMOVED?)
-
-
-NOTE: The text no longer matches the equations! Will work on this but thought I should mention this! -mykytyn
+where here $\alpha$ is our exponent for the amplitudes, and $r$ is the band we have chosen to work in as our base band. $\lambda$ is the respective wavelength for each band. $\gamma$ here is our exponent for the time shifts for each band.
 
 This marginalization (to remove all explicit mention of the ersatz
 variable $q$) leads to the following very simple covariance function
@@ -359,7 +354,7 @@ p(m) &=& N(m\given \mu,V)
 \\
 \transpose{\mu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_N)]
 \\
-V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}+\Delta(b_n)*\Delta(b_{n'})|}{\sqrt{\tau(b_n)*\tau(b_{n'})}} + \sigma_n^2\,\Delta_{nn'}
+V_{nn'} &=& a(b_n)\,a(b_{n'})\,\exp -\frac{|t_n - t_{n'}+\Delta(b_n) - \Delta(b_{n'})|}{\tau} + \sigma_n^2\,\Delta_{nn'}
 \label{eq:likeend}
 \quad ,
 \end{eqnarray}
@@ -402,9 +397,9 @@ p(\tilde{m}|m) &=& N(\tilde{m}|\tilde{\mu},\tilde{V})
 \\
 \transpose{\nu} &=& [\mu(b_1), \mu(b_2), \cdots , \mu(b_K)]
 \\
-X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n + \Delta(b_k) * \delta(b_n)|}{\sqrt{\tau(b_k)*\tau(b_n)}}
+X_{kn} &=& a(b_k)\,a(b_n)\,\exp -\frac{|t_k - t_n + \Delta(b_k) - \delta(b_n)|}{\tau}
 \\
-Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}+\Delta(b_k) * \Delta(b_{k'})|}{\sqrt{\tau(b_k)*\tau(b_{k'})}} + \sigma_k^2\,\Delta_{kk'}
+Y_{kk'} &=& a(b_k)\,a(b_{k'})\,\exp -\frac{|t_k - t_{k'}+\Delta(b_k) - \Delta(b_{k'})|}{\tau} + \sigma_k^2\,\Delta_{kk'}
 \quad ,
 \end{eqnarray}
 where $\tilde{m}$ is the column vector of conditional predictions,
@@ -420,11 +415,8 @@ data.  We show an example of conditional predictions in
 \figurename~\ref{fig:conditional}
 
 \section{Inference}
-We used no priors for our means. (Should we? -mykytyn))
 
 For our $\log(a_r)$ hyperparameter we used a prior of a Gaussian centered at $-1$ with a variance of $1$. For $\alpha$ our prior was a Gaussian centered at $-1$ and a variance of $.25$. For $\log(\tau_r)$ we used a Gaussian centered at $5$ and a variance of $2$. For $\delta_r$ we used a Gaussian with a mean of $0$ and a variance of $1$. For $\gamma$ we used a Gaussian with a mean of $-1$ and a variance of $.25$. 
-
-Mykytyn Notes: is the prior for $log(a_r)$ right?
 
 The initial values we found were found using a gridsearch in each band.
 
