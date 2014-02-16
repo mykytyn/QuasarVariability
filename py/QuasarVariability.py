@@ -277,7 +277,6 @@ class newRandomWalk:
         return packs
 
     def get_priors(self):
-        #TODO: FIX PRIORS OK
         prior = 0
         a_r, alpha, tau_r, beta, delta_r, gamma = self.get_pars()
         if self.onofflist[0]:
@@ -397,8 +396,11 @@ class QuasarVariability:
         Priors still in progress!!!
         Use with caution!!!
         """
-        return self.get_covar().get_priors()
-            
+        prior = 0
+        for i in self.get_mean():
+            prior += uitls.ln_1d_gauss(i, 20., 10.)
+        prior += self.get_covar().get_priors()
+        return prior
 
     def get_conditional_mean_and_variance(self, ptimes, pbands,
                                           mags, times, bands, sigmas):
