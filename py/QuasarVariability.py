@@ -398,7 +398,7 @@ class QuasarVariability:
         """
         prior = 0
         for i in self.get_mean():
-            prior += uitls.ln_1d_gauss(i, 20., 10.)
+            prior += utils.ln_1d_gauss(i, 20., 10.)
         prior += self.get_covar().get_priors()
         return prior
 
