@@ -269,6 +269,10 @@ class newRandomWalk:
         return packs
 
     def get_priors(self):
+<<<<<<< HEAD
+=======
+        #TODO: FIX PRIORS OK REALLY THO
+>>>>>>> 782b329b4859228b751a310989d098751355fa42
         prior = 0
         a_r, alpha, tau, delta_r, gamma = self.get_pars()
         if self.onofflist[0]:
@@ -276,11 +280,20 @@ class newRandomWalk:
         if self.onofflist[1]:
             prior += utils.ln_1d_gauss(alpha, -1., .25)
         if self.onofflist[2]:
+<<<<<<< HEAD
             prior += utils.ln_1d_gauss(tau, 5., 2.)
+=======
+            prior += utils.ln_1d_gauss(tau_r, 5., 1.)
+>>>>>>> 782b329b4859228b751a310989d098751355fa42
         if self.onofflist[3]:
             prior += utils.ln_1d_gauss(delta_r, 0., 1.)
+<<<<<<< HEAD
         if self.onofflist[4]:
             prior += utils.ln_1d_gauss(gamma, -1., .25)
+=======
+        if self.onofflist[5]:
+            prior += utils.ln_1d_gauss(gamma, -1., .25) # irrelevant
+>>>>>>> 782b329b4859228b751a310989d098751355fa42
         return prior
 
     def get_labels(self):
