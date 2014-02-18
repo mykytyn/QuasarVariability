@@ -198,17 +198,14 @@ class newRandomWalk:
         self.a_r = np.exp(pars[0])
         self.alpha = pars[1]
         assert not np.isnan(self.alpha)
-        self.tau_r = np.exp(pars[2])
-        self.beta = pars[3]
-        self.delta_r = pars[4]
-        self.gamma = pars[5]
+        self.tau = np.exp(pars[2])
+        self.delta_r = pars[3]
+        self.gamma = pars[4]
         self.a = np.array([self._get_coef(x, self.a_r, self.alpha) 
                            for x in range(len(self.wavelengths))])
-        self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) 
-                             for x in range(len(self.wavelengths))])
         self.delta = np.array([self._get_coef(x,self.delta_r,self.gamma) 
                                for x in range(len(self.wavelengths))])
-        self.par_list = [self.a_r, self.alpha, self.tau_r, self.beta, self.delta_r, self.gamma]
+        self.par_list = [self.a_r, self.alpha, self.tau, self.delta_r, self.gamma]
 
     def _get_coef(self, band, coef, exponent):
         coef =  coef * ((self.wavelengths[band] / self.wavelengths[self.base]) ** exponent)
@@ -217,7 +214,7 @@ class newRandomWalk:
     def _get_kernal_matrix(self, t1, b1, t2, b2):
         return np.array(self.a[b1[:, None]] * self.a[b2[None, :]] *
                          np.exp(-1 * (np.abs(t1[:,None] - t2[None, :] + self.delta[b1[:, None]] - self.delta[b2[None,:]]))
-                                 / np.sqrt(self.tau[b1[:, None]] * self.tau[b2[None,:]])))
+                                 / self.tau))
 
     def get_variance_tensor(self, times, bands, sigmas=None):
         """
@@ -245,26 +242,21 @@ class newRandomWalk:
             counter += 1
             assert not np.isnan(self.alpha)
         if self.onofflist[2]:
-            self.tau_r = np.exp(pars[counter])
+            self.tau = np.exp(pars[counter])
             counter += 1
         if self.onofflist[3]:
-            self.beta = pars[counter]
-            counter += 1
-        if self.onofflist[4]:
             self.delta_r = pars[counter]
             counter += 1
-        if self.onofflist[5]:
+        if self.onofflist[4]:
             self.gamma = pars[counter]
             counter += 1
         self.a = np.array([self._get_coef(x, self.a_r, self.alpha) 
                            for x in range(len(self.wavelengths))])
-        self.tau = np.array([self._get_coef(x,self.tau_r,self.beta) 
-                             for x in range(len(self.wavelengths))])
         self.delta = np.array([self._get_coef(x,self.delta_r,self.gamma) 
                                for x in range(len(self.wavelengths))])
 
     def get_pars(self):
-        return self.a_r, self.alpha, self.tau_r, self.beta, self.delta_r, self.gamma
+        return self.a_r, self.alpha, self.tau, self.delta_r, self.gamma
 
     def get_packed_pars(self):
         packs = []
@@ -278,24 +270,22 @@ class newRandomWalk:
 
     def get_priors(self):
         prior = 0
-        a_r, alpha, tau_r, beta, delta_r, gamma = self.get_pars()
+        a_r, alpha, tau, delta_r, gamma = self.get_pars()
         if self.onofflist[0]:
             prior += utils.ln_1d_gauss(a_r, -1. ,1.)
         if self.onofflist[1]:
             prior += utils.ln_1d_gauss(alpha, -1., .25)
         if self.onofflist[2]:
-            prior += utils.ln_1d_gauss(tau_r, 5., 2.)
+            prior += utils.ln_1d_gauss(tau, 5., 2.)
         if self.onofflist[3]:
-            prior += utils.ln_1d_gauss(beta, -1., .25)
-        if self.onofflist[4]:
             prior += utils.ln_1d_gauss(delta_r, 0., 1.)
-        if self.onofflist[5]:
+        if self.onofflist[4]:
             prior += utils.ln_1d_gauss(gamma, -1., .25)
         return prior
 
     def get_labels(self):
         labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z']
-        for status, par in zip(self.onofflist, ['ln a_r', 'alpha', 'ln tau_r', 'beta', 'ln delta_r', 'gamma']):
+        for status, par in zip(self.onofflist, ['ln a_r', 'alpha', 'ln tau', 'delta_r', 'gamma']):
             if status: 
                 labels.append(par)
         return labels
@@ -366,10 +356,10 @@ class QuasarVariability:
         assert len(x) == len(mu) == V.shape[0] == V.shape[1]
         dx = x - mu
         try:
-            L = linalg.cholesky(V, lower=True)
+            L, lower = linalg.cho_factor(V, lower=True)
             alpha = linalg.cho_solve((L.T, False), linalg.cho_solve((L, True), dx))
             #assert np.all(np.abs(np.dot(L,L.T) - V) < 10**-8)
-            logdet = 2*np.linalg.slogdet(L)[1]
+            logdet = 2*np.sum(np.log(np.diagonal(L)))
             #assert logdet - np.linalg.slogdet(V)[1] < 10**-8
             return -.5 * logdet + -0.5 * np.dot(dx.T, alpha)
         except:
