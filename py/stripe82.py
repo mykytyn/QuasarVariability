@@ -115,6 +115,20 @@ class Stripe82 (QuasarData):
         self.times = np.array(self.times)
         temp.close()
 
+    def remove_bad_data(self, bandname, lowmag, highmag, lowtime, hightime):
+        mask = np.logical_and(lowmag<self.mags,self.mags<highmag)
+        mask2 = np.logical_and(lowtime<self.times,self.times<hightime)
+        finalmask = np.logical_not(np.logical_and(mask, mask2))
+        finalmask = np.logical_or(finalmask, self.bandnames!=bandname)
+        assert not np.all(finalmask)
+        print np.count_nonzero(np.logical_not(finalmask))
+        assert np.count_nonzero(np.logical_not(finalmask))==1
+        self.mags = self.mags[finalmask]
+        self.bands = self.bands[finalmask]
+        self.bandnames = self.bandnames[finalmask]
+        self.sigmas = self.sigmas[finalmask]
+        self.times = self.times[finalmask]
+
 
 class MockPanstarrs(Stripe82):
         def __init__(self, objid, timestep=10., fn='quasar'):
