@@ -7,11 +7,16 @@ import random
 import triangle
 
 def make_triangle_plot(sampler, labels):
-    trichain = np.column_stack((sampler.flatchain, sampler.lnprobability.flatten()))
-    return triangle.corner(trichain, labels=labels)
+    lnprob = sampler.lnprobability.flatten()
+    trichain = np.column_stack((sampler.flatchain, lnprob))
+    extents = list([[np.min(x[np.isfinite(x)]),np.max(x[np.isfinite(x)])] for x in np.hsplit(trichain,trichain.shape[1])])
+    extents.append([np.min(lnprob[np.isfinite(lnprob)]),np.max(lnprob)])
+    print extents
+    return triangle.corner(trichain, labels=labels,extents=extents)
 
 def get_best_lnprob(sampler):
     highln = np.argmax(sampler.lnprobability)
+    print np.max(sampler.lnprobability)
     return sampler.flatchain[highln], sampler.lnprobability.flatten()[highln]
 
 def make_walker_plots(sampler, labels, nwalkers):

@@ -16,7 +16,7 @@ for i,obj in enumerate(open('targets.txt')):
     print obj, i
     num_runs = 5
     num_steps = 512
-    nthreads = 15
+    nthreads = 1
     nwalkers = 32
     prefix = 'bad_data_test'
     init_path = '/home/dwm261/QuasarVariability/py'
@@ -55,13 +55,13 @@ for i,obj in enumerate(open('targets.txt')):
 
 
 
-    init_means, init_amps = utils.grid_search_all_bands(data.get_mags(),data.get_sigmas(),data.get_bands())
+    #init_means, init_amps = utils.grid_search_all_bands(data.get_mags(),data.get_sigmas(),data.get_bands())
     #TEMPORARY FOR TESTING:
-    #init_means = [19.95, 19.75, 19.45, 19.45, 19.35]
-    #init_amps = [0.08660254, 0.25, 0.12499, 0.1161895, 0.02236068]
+    init_means = [19.95, 19.75, 19.45, 19.45, 19.35]
+    init_amps = [0.08660254, 0.25, 0.12499, 0.1161895, 0.02236068]
     initp0 = []
     initp0.extend(init_means)
-    initp0.extend((np.log(init_amps[2]), -1., np.log(50.), 0.))
+    initp0.extend((np.log(init_amps[2]), -1., np.log(100.), 0.))
     onofflist = [True, True, True, True, False]
 
     p0 = initp0
@@ -70,7 +70,7 @@ for i,obj in enumerate(open('targets.txt')):
     bests.append(p0)
     default = []
     default.extend(init_means)
-    default.extend((np.log(init_amps[2]), -1., np.log(50.), 0., 1.))
+    default.extend((np.log(init_amps[2]), -1., np.log(100.), 0., 1.))
     for j in range(num_runs):
         newprefix = '{}-{}'.format(prefix, j)
         sampler, labels, pos, prob, state = run_mcmc(data, num_steps, p0, default, onofflist, newCovar=True, nthreads=nthreads, nwalkers=nwalkers)
@@ -89,11 +89,12 @@ for i,obj in enumerate(open('targets.txt')):
     print sampler.acor
     acors = []
     count = 1
-    while num_steps*count < 64*np.median(sampler.acor)
+    while num_steps*count < 64*np.median(sampler.acor):
         print 64*np.median(sampler.acor), num_steps*count
         acors.append(sampler.acor)
         count += 1
         pos, prob, state = sampler.run_mcmc(pos, num_steps)
+    print count
     utils.make_triangle_plot(sampler, labels).savefig('%s-triangle.png' % prefix)
     os.rename('{}/{}-triangle.png'.format(init_path, prefix), '{}/{}-triangle.png'.format(final_path, prefix))
     walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)

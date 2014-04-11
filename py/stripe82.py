@@ -121,7 +121,7 @@ class Stripe82 (QuasarData):
         finalmask = np.logical_not(np.logical_and(mask, mask2))
         finalmask = np.logical_or(finalmask, self.bandnames!=bandname)
         assert not np.all(finalmask)
-        print np.count_nonzero(np.logical_not(finalmask))
+        #print np.count_nonzero(np.logical_not(finalmask))
         assert np.count_nonzero(np.logical_not(finalmask))==1
         self.mags = self.mags[finalmask]
         self.bands = self.bands[finalmask]

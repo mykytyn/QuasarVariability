@@ -268,15 +268,21 @@ class newRandomWalk:
                     packs.append(par)
         return packs
 
+    def top_hat_prior(self, par, mean, var, lower, upper):
+        if lower<par<upper:
+            return utils.ln_1d_gauss(par, mean, var)
+        else:
+            return -np.inf
+
     def get_priors(self):
         prior = 0
         a_r, alpha, tau, delta_r, gamma = self.get_pars()
         if self.onofflist[0]:
-            prior += utils.ln_1d_gauss(a_r, -1. ,1.)
+            prior += utils.ln_1d_gauss(np.log(a_r), -1. ,1.)
         if self.onofflist[1]:
             prior += utils.ln_1d_gauss(alpha, -1., .25)
         if self.onofflist[2]:
-            prior += utils.ln_1d_gauss(tau, 5., 2.)
+            prior += self.top_hat_prior(np.log(tau), 5., 2.,4.,100.)
         if self.onofflist[3]:
             prior += utils.ln_1d_gauss(delta_r, 0., 1.)
         if self.onofflist[4]:
