@@ -35,9 +35,6 @@ def make_walker_plots(sampler, labels, nwalkers):
         plots.append(fig)
     return plots
 
-            
-
-
 def make_band_time_grid(inittime, finaltime, dt, bandlist):
     """
     Inputs: inittime: start of grid
@@ -286,7 +283,7 @@ def make_data_plots(obj,prefix='quasar_data'):
     matplotlib.rc('xtick', labelsize=8)
     matplotlib.rc('ytick', labelsize=8)
 
-    mags, times, bands, sigmas = obj.get_data()
+    mags, times, bands, sigmas, bad = obj.get_data()
     start = np.min(times)-50.
     end = np.max(times)+50.
     bandlist = obj.get_bandlist()
@@ -297,6 +294,9 @@ def make_data_plots(obj,prefix='quasar_data'):
         plt.xlim(start,end)
         plt.ylabel('%s' % bandlist[i])
         plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask], linestyle='none', color='black', marker='.')
+        mask = np.logical_and(mask, bad)[0]
+        if np.any(mask):
+            plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask], linestyle='none', color='gray', marker='.')
         plt.setp(ax.get_xticklabels(),visible=(i == 4))
 
     plt.savefig('{}.png'.format(prefix))
@@ -335,113 +335,3 @@ def mock_panstarrs(obj, time_step):
         new_sigmas.append(mask_sigmas[samp])
         new_bands.append(mask_bands[samp])
     return new_mags, new_times, new_sigmas, new_bands
-
-
-def plot_meshgridmeanmin(meanmin, maxmin, sigmamin, sigmamax, meanstep, sigmastep, band, obj):
-    """
-    Inputs: see function above
-    Outputs: plots mesh grid
-    THIS DOESNT WORK ANYMORE
-    """
-    plt.figure()
-    plt.clf()
-    # set up arrays
-    meanmin = meanmin
-    meanmax = maxmin
-    sigmamin = sigmamin
-    sigmamax = sigmamax
-    meanstep = meanstep
-    sigmastep = sigmastep
-    sigmas = np.arange(sigmamin, sigmamax, sigmastep)
-    means = np.arange(meanmin, meanmax, meanstep)
-    mm, ss = np.meshgrid(means, sigmas)
-    probs = np.zeros_like(mm)
-
-    #do stupid loop
-    ni, nj = mm.shape
-    print ni,nj
-    mag=get_mag(band,obj)
-    mag_err=get_mag_err(band,obj)**2
-    for i in range(ni):
-        for j in range(nj):
-            pars = np.array([mm[i,j],ss[i,j]])
-            probs[i,j] = tot_likelihood(pars,mag, mag_err)
-    print probs
-
-    vmax = np.max(probs)
-    vmin = vmax-1000.
-
-    plt.imshow(probs,cmap='gray',interpolation='nearest',origin='lower',
-               extent=[meanmin,meanmax,sigmamin,sigmamax+.05], vmax=vmax,vmin=vmin,aspect='auto')
-    plt.colorbar()
-    plt.savefig('grid_%s_%s.png' %(band,obj))
-    return 'finished plotting'
-
-
-def plot_mag(band,obj):
-    """
-    Input:
-    band is the ugriz band 
-    obj is the headobjid
-    Output: plot for the magnitude in this band with a solid line at the mean magnitude and fainter lines showin    g the 1sigma value from the mean magnitude
-    NOTE: DOESNT WORK ANYMORE
-    """
-    mag=get_mag(band,obj)
-    mag_err=get_mag_err(band,obj)
-    time=get_time(band,obj)
-    print sorted(time),len(time)
-    plt.errorbar(time, mag, yerr=mag_err, marker='.',color='black', ls='none', label='%s'%(band))
-    band_lines=meshgrid(10., 30., 0., 1., .1, .001, band, obj)
-    plt.axhline(y=band_lines[0],color='black',alpha=0.5,linewidth=2)
-    plt.axhline(y=band_lines[0]+band_lines[1],color='black',linewidth=.1,alpha=0.5)
-    plt.axhline(y=band_lines[0]-band_lines[1], color='black',linewidth=.1,alpha=0.5)
-    plt.ylim(band_lines[0]-0.75,band_lines[0]+0.75)
-    plt.ylabel('%s'%(band))
-    #plt.legend(loc='upper left',prop={'size':8})
-    
-
-def plot_mag_curve(band,obj):
-    """
-    NOTE: NO LONGER WORKS
-    """
-    mean,a=meshgrid(10., 30., 0., 1., .1, .001, band, obj)
-    tau = 200.
-    testQ= QuasarVariability(a,tau,mean)
-    timegrid=np.arange(51000,54500,20)
-    testMags=get_mag(band,obj)
-    testTimes=get_time(band,obj)
-    testSigmas=get_mag_err(band,obj)
-    pmean,Vpp=testQ.get_conditional_mean_and_variance(timegrid,testMags,testTimes,testSigmas)
-    pmean=np.array(pmean).reshape(timegrid.shape)
-    psig=np.sqrt(np.diag(np.array(Vpp)))
-    plt.errorbar(testTimes, testMags, yerr=testSigmas, marker='.',color='black', ls='none', label='%s'%(band))
-    plt.plot(timegrid,pmean,color='black',alpha=0.5,linewidth=2)
-    plt.plot(timegrid,pmean+psig,color='black',linewidth=.1,alpha=0.5)
-    plt.plot(timegrid,pmean-psig, color='black',linewidth=.1,alpha=0.5)
-    plt.ylim(mean-0.75,mean+0.75)
-    plt.ylabel('%s'%(band))
-    for i in range(4):
-        maggrid = testQ.get_conditional_sample(timegrid,testMags,testTimes,testSigmas)
-        maggrid = np.array(maggrid).reshape(timegrid.shape)
-        plt.plot(timegrid,maggrid,'k-',alpha=0.25)
-
-
-def missing_points(band,obj):
-    """
-    Inputs: 
-    band is ugriz band
-    obj is headobjid
-    Output: faint gray triangles for data that is outside of the limits of magnite range
-    NOTE: NO LONGER WORKS
-    """
-    mag=get_mag(band,obj)
-    time=get_time(band,obj)
-    band_lines=meshgrid(10., 30., 0., 1., .1, .001, band, obj)
-    ymin, ymax= band_lines[0]-0.75, band_lines[0]+0.75
-    for m,t in zip(mag,time):
-        if m > ymax:
-            print m
-            plt.plot(t, ymax-0.05, marker='^',markerfacecolor='gray', mew=0,alpha=0.5)
-        if m < ymin:
-            print m
-            plt.plot(t,ymin+0.05, marker='v',markerfacecolor='gray', mew=0,alpha=0.5)

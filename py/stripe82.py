@@ -76,7 +76,7 @@ class QuasarData:
         If given a bandname only returns that band
         """
         return [self.get_mags(bandname), self.get_times(bandname),
-                self.get_bands(bandname), self.get_sigmas(bandname)]
+                self.get_bands(bandname), self.get_sigmas(bandname),self.bad]
 
 class Stripe82 (QuasarData):
     """
@@ -113,9 +113,18 @@ class Stripe82 (QuasarData):
         self.bandnames = np.array(self.bandnames)
         self.sigmas = np.array(self.sigmas)
         self.times = np.array(self.times)
+        self.bad = np.zeros(len(self.times),dtype=bool)
         temp.close()
 
-    def remove_bad_data(self, bandname, lowmag, highmag, lowtime, hightime):
+    def remove_bad_data(self, cutoff, interval):
+        mask = self.sigmas>cutoff
+        badtimes = [x for x in self.times if np.any(np.abs(x-self.times[mask])<interval)]
+        mask2 = np.zeros(len(self.times),dtype=bool)
+        for x in badtimes:
+            mask2 = np.logical_or(mask2, self.times==x)
+        self.bad = mask2
+            
+        """
         mask = np.logical_and(lowmag<self.mags,self.mags<highmag)
         mask2 = np.logical_and(lowtime<self.times,self.times<hightime)
         finalmask = np.logical_not(np.logical_and(mask, mask2))
@@ -128,6 +137,7 @@ class Stripe82 (QuasarData):
         self.bandnames = self.bandnames[finalmask]
         self.sigmas = self.sigmas[finalmask]
         self.times = self.times[finalmask]
+        """
 
 
 class MockPanstarrs(Stripe82):
