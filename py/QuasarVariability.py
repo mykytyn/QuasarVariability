@@ -290,7 +290,8 @@ class newRandomWalk:
         if self.onofflist[1]:
             prior += utils.ln_1d_gauss(alpha, -1., .25)
         if self.onofflist[2]:
-            prior += self.top_hat_prior(np.log(tau), 5., 2., 4., 100.)
+            prior += utils.ln_1d_gauss(np.log(tau), 6., 2.)
+            #prior += self.top_hat_prior(np.log(tau), 5., 2., 3., 100.)
         if self.onofflist[3]:
             prior += utils.ln_1d_gauss(delta_r, 0., 1.)
         if self.onofflist[4]:
@@ -372,8 +373,8 @@ class QuasarVariability:
         dx = x - mu
         try:
             L, lower = linalg.cho_factor(V, lower=True)
-            alpha = linalg.cho_solve((L.T, False),
-                                     linalg.cho_solve((L, True), dx))
+            alpha = linalg.cho_solve((L.T, False),dx)
+            #assert np.all(np.abs(alpha-np.dot(linalg.inv(V),dx))<10**-8)
             #assert np.all(np.abs(np.dot(L,L.T) - V) < 10**-8)
             logdet = 2*np.sum(np.log(np.diagonal(L)))
             #assert logdet - np.linalg.slogdet(V)[1] < 10**-8

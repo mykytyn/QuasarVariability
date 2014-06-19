@@ -8,57 +8,38 @@ import os
 import stripe82
 import cProfile
 import pstats
+from prior_posterior import graph_prior_and_posterior
 
-for i,obj in enumerate(open('targets.txt')):
+for i,obj in enumerate(open('newlist.txt')):
     obj = int(obj)
-    if obj != 587730845813965270:
-        continue
+    #if obj != 587730845813965270:
+        #continue
     print obj, i
     num_runs = 5
     num_steps = 512
-    nthreads = 1
+    nthreads = 10
     nwalkers = 32
-    prefix = 'bad_data_test'
+    prefix = 'removebaddata'.format(obj)
     init_path = '/home/dwm261/QuasarVariability/py'
-    final_path = '/home/dwm261/public_html/Quasars/{}'.format(obj)
+    final_path = '/home/dwm261/public_html/Quasars/light/{}'.format(obj)
 
     try:
         os.mkdir('{}'.format(final_path))
     except:
         pass
 
+    cutoff = .2
     data = stripe82.Stripe82(obj)
-    #utils.make_data_plots(data, prefix='{}-data'.format(prefix))
-    #os.rename('{}/{}-data.png'.format(init_path,prefix),'{}/{}-data.png'.format(final_path, prefix))
+    utils.make_data_plots(data, prefix='{}-data'.format(prefix))
+    os.rename('{}/{}-data.png'.format(init_path,prefix),'{}/{}-data.png'.format(final_path, prefix))
+    data.remove_bad_data(cutoff,2./24.)
+    #utils.make_data_plots(data, prefix='{}-data2'.format(prefix))
+    #os.rename('{}/{}-data2.png'.format(init_path,prefix),'{}/{}-data2.png'.format(final_path, prefix))
 
-    data.remove_bad_data('u',22, 26,53500,54000)
-    data.remove_bad_data('g',21.,23.,53500,54000)
-    data.remove_bad_data('i',20.5,22.,53500,54000)
-    data.remove_bad_data('r',20.5,22,53500,54000)
-    data.remove_bad_data('z',20.,22,53500,54000)
-
-    data.remove_bad_data('u',19.0,19.6,53800,54200)
-    data.remove_bad_data('g',19.0,19.4,53800,54200)
-    data.remove_bad_data('r',19.6,19.8,53800,54200)
-    data.remove_bad_data('i',19.0,19.15,53800,54200)
-    #data.remove_bad_data('z',19.0,19.15,53800,54200)
-
-    data.remove_bad_data('u',22,28,54250,55000)
-    data.remove_bad_data('g',19.8,28,54250,55000)
-    data.remove_bad_data('r',19.8,28,54250,55000)
-    data.remove_bad_data('i',19.7,28,54250,55000)
-    data.remove_bad_data('z',19.5,28,54250,55000)
-
-    utils.make_data_plots(data, prefix='{}-data-mod2'.format(prefix))
-    os.rename('{}/{}-data-mod2.png'.format(init_path,prefix),'{}/{}-data-mod2.png'.format(final_path, prefix))
-
-
-
-
-    #init_means, init_amps = utils.grid_search_all_bands(data.get_mags(),data.get_sigmas(),data.get_bands())
+    init_means, init_amps = utils.grid_search_all_bands(data.get_mags(),data.get_sigmas(),data.get_bands())
     #TEMPORARY FOR TESTING:
-    init_means = [19.95, 19.75, 19.45, 19.45, 19.35]
-    init_amps = [0.08660254, 0.25, 0.12499, 0.1161895, 0.02236068]
+    #init_means = [19.95, 19.75, 19.45, 19.45, 19.35]
+    #init_amps = [0.08660254, 0.25, 0.12499, 0.1161895, 0.02236068]
     initp0 = []
     initp0.extend(init_means)
     initp0.extend((np.log(init_amps[2]), -1., np.log(100.), 0.))
@@ -85,11 +66,16 @@ for i,obj in enumerate(open('targets.txt')):
         bests.append(p0)
         bestsln.append(pln)
 
+    bestparams = bests[-1]
+    graph_prior_and_posterior(data, bestparams, onofflist, default, prefix=prefix)
+    os.rename('{}/{}-prior.png'.format(init_path, prefix),'{}/{}-prior.png'.format(final_path,prefix))
+    os.rename('{}/{}-posterior.png'.format(init_path, prefix),'{}/{}-posterior.png'.format(final_path,prefix))
     pos, prob, state = sampler.run_mcmc(pos, num_steps)
     print sampler.acor
     acors = []
     count = 1
-    while num_steps*count < 64*np.median(sampler.acor):
+
+    while num_steps*count < 64*np.median(sampler.acor) and count<20:
         print 64*np.median(sampler.acor), num_steps*count
         acors.append(sampler.acor)
         count += 1
@@ -120,5 +106,4 @@ for i,obj in enumerate(open('targets.txt')):
     os.rename('{}/{}-acor.png'.format(init_path, prefix), '{}/{}-acor.png'.format(final_path, prefix))
     print pos
     print prob
-    break
 

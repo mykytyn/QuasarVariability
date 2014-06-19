@@ -1,27 +1,29 @@
 import numpy as np
-import random
 import pyfits as pyf
 import matplotlib
 import matplotlib.pyplot as plt
-import random
 import triangle
+
 
 def make_triangle_plot(sampler, labels):
     lnprob = sampler.lnprobability.flatten()
     trichain = np.column_stack((sampler.flatchain, lnprob))
-    extents = list([[np.min(x[np.isfinite(x)]),np.max(x[np.isfinite(x)])] for x in np.hsplit(trichain,trichain.shape[1])])
-    extents.append([np.min(lnprob[np.isfinite(lnprob)]),np.max(lnprob)])
+    extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
+                    x in np.hsplit(trichain, trichain.shape[1])])
+    extents.append([np.min(lnprob[np.isfinite(lnprob)]), np.max(lnprob)])
     print extents
-    return triangle.corner(trichain, labels=labels,extents=extents)
+    return triangle.corner(trichain, labels=labels, extents=extents)
+
 
 def get_best_lnprob(sampler):
     highln = np.argmax(sampler.lnprobability)
     print np.max(sampler.lnprobability)
     return sampler.flatchain[highln], sampler.lnprobability.flatten()[highln]
 
+
 def make_walker_plots(sampler, labels, nwalkers):
     plots = []
-    for j,par in enumerate(labels):
+    for j, par in enumerate(labels):
         fig = plt.figure()
         axis = fig.gca()
         if par == "ln_prob":
@@ -34,6 +36,7 @@ def make_walker_plots(sampler, labels, nwalkers):
         axis.set_ylabel('{}'.format(par))
         plots.append(fig)
     return plots
+
 
 def make_band_time_grid(inittime, finaltime, dt, bandlist):
     """
@@ -205,6 +208,7 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
     plt.subplots_adjust(hspace=0, top=.95)
     matplotlib.rc('xtick', labelsize=6)
     matplotlib.rc('ytick', labelsize=6)
+    print num_samps
     for i in range(num_samps):
         maggrid = quasarobj.get_prior_sample(timegrid, bands)
         maggrid = np.array(maggrid).reshape(timegrid.shape)
@@ -217,6 +221,7 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
         btimegrid = timegrid[mask]
         bpmean = pmean[mask]
         bpsig = psig[mask]
+        print bpmean[0], bpsig[0]
         plt.plot(btimegrid, bpmean, 'k-')
         plt.plot(btimegrid, bpmean-bpsig, 'k-')
         plt.plot(btimegrid, bpmean+bpsig, 'k-')
@@ -277,7 +282,8 @@ def make_posterior_plots(quasarobj, times, mags, bands, sigmas, timegrid,
         plt.setp(ax.get_xticklabels(), visible=(i == 4))
         plt.ylim(means[i] - .75, means[i] + .75)
 
-def make_data_plots(obj,prefix='quasar_data'):
+
+def make_data_plots(obj, prefix='quasar_data'):
     plt.clf()
     plt.subplots_adjust(hspace=0, top=.95)
     matplotlib.rc('xtick', labelsize=8)
@@ -289,15 +295,18 @@ def make_data_plots(obj,prefix='quasar_data'):
     bandlist = obj.get_bandlist()
 
     for i in range(5):
-        ax = plt.subplot(511+i)
-        mask = [bands==i]
-        plt.xlim(start,end)
+        ax = plt.subplot(511 + i)
+        mask = [bands == i]
+        plt.xlim(start, end)
         plt.ylabel('%s' % bandlist[i])
-        plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask], linestyle='none', color='black', marker='.')
-        mask = np.logical_and(mask, bad)[0]
-        if np.any(mask):
-            plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask], linestyle='none', color='gray', marker='.')
-        plt.setp(ax.get_xticklabels(),visible=(i == 4))
+        plt.errorbar(times[mask], mags[mask], yerr=sigmas[mask],
+                     linestyle='none', color='black', marker='.')
+        newmask = np.logical_and(mask, bad)[0]
+        if np.any(newmask):
+            plt.errorbar(times[newmask], mags[newmask], yerr=sigmas[newmask],
+                         linestyle='none', color='red', marker='.')
+        plt.setp(ax.get_xticklabels(), visible=(i == 4))
+        plt.ylim(np.median(mags[mask])-.75,np.median(mags[mask])+.75)
 
     plt.savefig('{}.png'.format(prefix))
 

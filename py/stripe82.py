@@ -2,6 +2,7 @@ import numpy as np
 import pyfits
 import utils
 
+
 class QuasarData:
     """
     Subclass this class with specific data classes
@@ -12,7 +13,7 @@ class QuasarData:
         else if given a bandname it returns only that band
         """
         if bandname:
-            mask = [self.bandnames==bandname]
+            mask = [self.bandnames == bandname]
             return self.mags[mask]
         return self.mags
 
@@ -22,7 +23,7 @@ class QuasarData:
         else if given a bandname it returns only that band
         """
         if bandname:
-            mask = [self.bandnames==bandname]
+            mask = [self.bandnames == bandname]
             return self.sigmas[mask]
         return self.sigmas
 
@@ -32,7 +33,7 @@ class QuasarData:
         else if given a bandname it returns only that band
         """
         if bandname:
-            mask = [self.bandnames==bandname]
+            mask = [self.bandnames == bandname]
             return self.times[mask]
         return self.times
 
@@ -42,7 +43,7 @@ class QuasarData:
         else if given a bandname it returns only that band
         """
         if bandname:
-            mask = [self.bandnames==bandname]
+            mask = [self.bandnames == bandname]
             return self.bands[mask]
         return self.bands
 
@@ -52,7 +53,7 @@ class QuasarData:
         else if given a bandname it returns only that band
         """
         if bandname:
-            mask = [self.bandnames==bandname]
+            mask = [self.bandnames == bandname]
             return self.bandnames[mask]
         return self.bandnames
 
@@ -76,7 +77,7 @@ class QuasarData:
         If given a bandname only returns that band
         """
         return [self.get_mags(bandname), self.get_times(bandname),
-                self.get_bands(bandname), self.get_sigmas(bandname),self.bad]
+                self.get_bands(bandname), self.get_sigmas(bandname), self.bad]
 
 class Stripe82 (QuasarData):
     """
@@ -89,10 +90,10 @@ class Stripe82 (QuasarData):
         """
         temp = pyfits.open('{}.fits'.format(fn))
         data = temp[1].data
-        mask = data['headobjid']==objid
+        mask = data['headobjid'] == objid
         table = data[mask]
-        self.bandlist=['u','g','r','i','z']
-        self.banddict={'u':0,'g':1,'r':2,'i':3,'z':4}
+        self.bandlist=['u', 'g', 'r', 'i', 'z']
+        self.banddict={'u':0, 'g':1, 'r':2, 'i':3, 'z':4}
         self.mags = []
         self.bands = []
         self.bandnames = []
@@ -105,25 +106,31 @@ class Stripe82 (QuasarData):
             self.mags.extend(mag)
             self.sigmas.extend(table['psfMagErr_{}'.format(name)])
             self.times.extend(table['mjd_{}'.format(name)])
-            self.bands.extend([i]*len(mag))
-            self.bandnames.extend([name]*len(mag))
+            self.bands.extend([i] * len(mag))
+            self.bandnames.extend([name] * len(mag))
 
         self.mags = np.array(self.mags)
         self.bands = np.array(self.bands)
         self.bandnames = np.array(self.bandnames)
         self.sigmas = np.array(self.sigmas)
         self.times = np.array(self.times)
-        self.bad = np.zeros(len(self.times),dtype=bool)
+        self.bad = np.zeros(len(self.times), dtype=bool)
         temp.close()
 
     def remove_bad_data(self, cutoff, interval):
-        mask = self.sigmas>cutoff
-        badtimes = [x for x in self.times if np.any(np.abs(x-self.times[mask])<interval)]
-        mask2 = np.zeros(len(self.times),dtype=bool)
+        mask = self.sigmas > cutoff
+        badtimes = [x for x in self.times if np.any(
+                np.abs(x - self.times[mask]) < interval)]
+        mask2 = np.zeros(len(self.times), dtype=bool)
         for x in badtimes:
-            mask2 = np.logical_or(mask2, self.times==x)
+            mask2 = np.logical_or(mask2, self.times == x)
         self.bad = mask2
-            
+        mask2 = np.logical_not(mask2)
+        self.mags=self.mags[mask2]
+        self.bands=self.bands[mask2]
+        self.sigmas=self.sigmas[mask2]
+        self.times=self.times[mask2]
+        self.bandnames=self.bandnames[mask2]
         """
         mask = np.logical_and(lowmag<self.mags,self.mags<highmag)
         mask2 = np.logical_and(lowtime<self.times,self.times<hightime)
