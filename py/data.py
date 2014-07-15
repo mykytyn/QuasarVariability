@@ -7,55 +7,66 @@ class QuasarData:
     """
     Subclass this class with specific data classes
     """
-    def get_mags(self, bandname=None):
+
+    def get_mags(self, bandname=None, include_bad=False):
         """
         Returns all mags if no argument given,
         else if given a bandname it returns only that band
         """
+        mask = np.ones(len(self.mags),dtype=bool)
         if bandname:
-            mask = [self.bandnames == bandname]
-            return self.mags[mask]
-        return self.mags
+            mask = np.logical_and(mask, self.bandnames == bandname)
+        if not include_bad:
+            mask = np.logical_and(mask, np.logical_not(self.bad))
+        return self.mags[mask]
 
-    def get_sigmas(self, bandname=None):
+    def get_sigmas(self, bandname=None, include_bad=False):
         """
         Returns all sigmas if no argument given,
         else if given a bandname it returns only that band
         """
+        mask = np.ones(len(self.mags),dtype=bool)
         if bandname:
-            mask = [self.bandnames == bandname]
-            return self.sigmas[mask]
-        return self.sigmas
+            mask = np.logical_and(mask, self.bandnames == bandname)
+        if not include_bad:
+            mask = np.logical_and(mask, np.logical_not(self.bad))
+        return self.sigmas[mask]
 
-    def get_times(self, bandname=None):
+    def get_times(self, bandname=None, include_bad=False):
         """
         Returns all times if no argument given,
         else if given a bandname it returns only that band
         """
+        mask = np.ones(len(self.mags),dtype=bool)
         if bandname:
-            mask = [self.bandnames == bandname]
-            return self.times[mask]
-        return self.times
+            mask = np.logical_and(mask, self.bandnames == bandname)
+        if not include_bad:
+            mask = np.logical_and(mask, np.logical_not(self.bad))
+        return self.times[mask]
 
-    def get_bands(self, bandname=None):
+    def get_bands(self, bandname=None, include_bad=False):
         """
         Returns all bands if no argument given,
         else if given a bandname it returns only that band
         """
+        mask = np.ones(len(self.mags),dtype=bool)
         if bandname:
-            mask = [self.bandnames == bandname]
-            return self.bands[mask]
-        return self.bands
+            mask = np.logical_and(mask, self.bandnames == bandname)
+        if not include_bad:
+            mask = np.logical_and(mask, np.logical_not(self.bad))
+        return self.bands[mask]
 
-    def get_bandnames(self, bandname=None):
+    def get_bandnames(self, bandname=None, include_bad=False):
         """
         Returns all bandnames if no argument given,
         else if given a bandname it returns only that band
         """
+        mask = np.ones(len(self.mags),dtype=bool)
         if bandname:
-            mask = [self.bandnames == bandname]
-            return self.bandnames[mask]
-        return self.bandnames
+            mask = np.logical_and(mask, self.bandnames == bandname)
+        if not include_bad:
+            mask = np.logical_and(mask, np.logical_not(self.bad))
+        return self.bandnames[mask]
 
     def get_bandlist(self):
         """
@@ -71,13 +82,18 @@ class QuasarData:
         """
         return self.banddict
 
-    def get_data(self, bandname=None):
+    def get_bad_mask(self, bandname=None):
+        if bandname:
+            mask = [self.bandnames==bandname]
+            return self.bad[mask]
+        return self.bad
+
+    def get_data(self, bandname=None, include_bad=False):
         """
         Returns all data in the form of: mags, times, bands, sigmas
         If given a bandname only returns that band
         """
-        return [self.get_mags(bandname), self.get_times(bandname),
-                self.get_bands(bandname), self.get_sigmas(bandname), self.bad]
+        return [self.get_mags(bandname, include_bad), self.get_times(bandname, include_bad), self.get_bands(bandname, include_bad), self.get_sigmas(bandname, include_bad), self.get_bad_mask(bandname)]
 
 class Stripe82 (QuasarData):
     """
@@ -118,6 +134,12 @@ class Stripe82 (QuasarData):
         temp.close()
 
     def remove_bad_data(self, cutoff, interval):
+        """
+        Inputs: cutoff: cutoff in mags
+        interval: interval in days
+        This finds points which have a variance greater than cutoff, and flags points that are closer than interval to those points
+        """
+        
         mask = self.sigmas > cutoff
         badtimes = [x for x in self.times if np.any(
                 np.abs(x - self.times[mask]) < interval)]
@@ -126,25 +148,8 @@ class Stripe82 (QuasarData):
             mask2 = np.logical_or(mask2, self.times == x)
         self.bad = mask2
         mask2 = np.logical_not(mask2)
-        self.mags=self.mags[mask2]
-        self.bands=self.bands[mask2]
-        self.sigmas=self.sigmas[mask2]
-        self.times=self.times[mask2]
-        self.bandnames=self.bandnames[mask2]
-        """
-        mask = np.logical_and(lowmag<self.mags,self.mags<highmag)
-        mask2 = np.logical_and(lowtime<self.times,self.times<hightime)
-        finalmask = np.logical_not(np.logical_and(mask, mask2))
-        finalmask = np.logical_or(finalmask, self.bandnames!=bandname)
-        assert not np.all(finalmask)
-        #print np.count_nonzero(np.logical_not(finalmask))
-        assert np.count_nonzero(np.logical_not(finalmask))==1
-        self.mags = self.mags[finalmask]
-        self.bands = self.bands[finalmask]
-        self.bandnames = self.bandnames[finalmask]
-        self.sigmas = self.sigmas[finalmask]
-        self.times = self.times[finalmask]
-        """
+
+        
 
 
 class MockPanstarrs(Stripe82):
@@ -165,10 +170,9 @@ class MockPanstarrs(Stripe82):
             self.times = np.array(times)
 
 
-
         def resample(self, timestep=10.):
             """
-            Resamples the data
+            Resamples the data to simulate panstarrs
             Inputs: timestep
             """
             mags, times, sigmas, bands = utils.mock_panstarrs(self.data, timestep)

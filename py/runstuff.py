@@ -5,71 +5,37 @@ import matplotlib.pyplot as plt
 from QuasarVariability import run_mcmc
 import utils
 import os
-import stripe82
-import cProfile
-import pstats
+import data
 from prior_posterior import graph_prior_and_posterior
 
-for i,obj in enumerate(open('newlist.txt')):
-    obj = int(obj)
-    #if obj != 587730845813965270:
-        #continue
-    print obj, i
+def run_all(objid, path, prefix, cutoff=.2):
+    obj = int(objid)   
     num_runs = 5
     num_steps = 512
     nthreads = 10
     nwalkers = 32
-    prefix = 'removebaddata'.format(obj)
-    init_path = '/home/dwm261/QuasarVariability/py'
-    final_path = '/home/dwm261/public_html/Quasars/light/{}'.format(obj)
+    quasar_data = data.Stripe82(obj)
 
-    try:
-        os.mkdir('{}'.format(final_path))
-    except:
-        pass
+    quasar_data.remove_bad_data(cutoff,2./24.)    
+    utils.make_data_plots(quasar_data).savefig('{}/{}-data.png'.format(path, prefix))
 
-    cutoff = .2
-    data = stripe82.Stripe82(obj)
-    utils.make_data_plots(data, prefix='{}-data'.format(prefix))
-    os.rename('{}/{}-data.png'.format(init_path,prefix),'{}/{}-data.png'.format(final_path, prefix))
-    data.remove_bad_data(cutoff,2./24.)
-    #utils.make_data_plots(data, prefix='{}-data2'.format(prefix))
-    #os.rename('{}/{}-data2.png'.format(init_path,prefix),'{}/{}-data2.png'.format(final_path, prefix))
-
-    init_means, init_amps = utils.grid_search_all_bands(data.get_mags(),data.get_sigmas(),data.get_bands())
-    #TEMPORARY FOR TESTING:
-    #init_means = [19.95, 19.75, 19.45, 19.45, 19.35]
-    #init_amps = [0.08660254, 0.25, 0.12499, 0.1161895, 0.02236068]
-    initp0 = []
-    initp0.extend(init_means)
-    initp0.extend((np.log(init_amps[2]), -1., np.log(100.), 0.))
+    init_means, init_amps = utils.grid_search_all_bands(quasar_data.get_mags(),quasar_data.get_sigmas(),quasar_data.get_bands())
     onofflist = [True, True, True, True, False]
-
-    p0 = initp0
-    bests = []
-    bestsln = []
-    bests.append(p0)
     default = []
     default.extend(init_means)
     default.extend((np.log(init_amps[2]), -1., np.log(100.), 0., 1.))
+    default = np.array(default)
+    params = np.array(default[5:])
+    params = params[np.array(onofflist)]
+    print params
+    p0 = np.concatenate([default[:5], params])
+    print p0
+
     for j in range(num_runs):
         newprefix = '{}-{}'.format(prefix, j)
-        sampler, labels, pos, prob, state = run_mcmc(data, num_steps, p0, default, onofflist, newCovar=True, nthreads=nthreads, nwalkers=nwalkers)
-        utils.make_triangle_plot(sampler, labels).savefig('%s-triangle.png' % newprefix)
-        os.rename('{}/{}-triangle.png'.format(init_path, newprefix), '{}/{}-triangle.png'.format(final_path, newprefix))
-        p0, pln = utils.get_best_lnprob(sampler)
-        print pln
-        walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
-        for par,plot in zip(labels,walker_plots):
-            plot.savefig('%s-walker-%s.png' % (newprefix, par))
-            os.rename('{}/{}-walker-{}.png'.format(init_path, newprefix, par),'{}/{}-walker-{}.png'.format(final_path, newprefix, par))
-        bests.append(p0)
-        bestsln.append(pln)
+        sampler, labels, pos, prob, state = run_mcmc(quasar_data, num_steps, default, onofflist,  nthreads=nthreads, nwalkers=nwalkers)
 
-    bestparams = bests[-1]
-    graph_prior_and_posterior(data, bestparams, onofflist, default, prefix=prefix)
-    os.rename('{}/{}-prior.png'.format(init_path, prefix),'{}/{}-prior.png'.format(final_path,prefix))
-    os.rename('{}/{}-posterior.png'.format(init_path, prefix),'{}/{}-posterior.png'.format(final_path,prefix))
+    sampler.reset()
     pos, prob, state = sampler.run_mcmc(pos, num_steps)
     print sampler.acor
     acors = []
@@ -81,12 +47,10 @@ for i,obj in enumerate(open('newlist.txt')):
         count += 1
         pos, prob, state = sampler.run_mcmc(pos, num_steps)
     print count
-    utils.make_triangle_plot(sampler, labels).savefig('%s-triangle.png' % prefix)
-    os.rename('{}/{}-triangle.png'.format(init_path, prefix), '{}/{}-triangle.png'.format(final_path, prefix))
+    utils.make_triangle_plot(sampler, labels).savefig('{}/{}-triangle.png'.format(path, prefix))
     walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
     for par,plot in zip(labels,walker_plots):
-        plot.savefig('%s-walker-%s.png' % (prefix, par))
-        os.rename('{}/{}-walker-{}.png'.format(init_path, prefix, par),'{}/{}-walker-{}.png'.format(final_path, prefix, par))
+        plot.savefig('{}/{}-walker-{}.png'.format(path, prefix, par))
     print acors
     plt.clf()
     steps_plot = range(len(acors))
@@ -102,8 +66,32 @@ for i,obj in enumerate(open('newlist.txt')):
     plt.xlabel('Number of steps')
     plt.ylabel('acor')
     plt.legend(loc='upper left')
-    plt.savefig('{}-acor.png'.format(prefix))
-    os.rename('{}/{}-acor.png'.format(init_path, prefix), '{}/{}-acor.png'.format(final_path, prefix))
+    plt.savefig('{}/{}-acor.png'.format(path,prefix))
+
+    bestparams, bestprob = utils.get_best_lnprob(sampler)
+    priorplot, posteriorplot = graph_prior_and_posterior(quasar_data, bestparams, onofflist, default, prefix=prefix)
+    priorplot.savefig('{}/{}-prior.png'.format(path,prefix))
+    posteriorplot.savefig('{}/{}-posterior.png'.format(path,prefix))
+
     print pos
     print prob
+    return bestparams, bestprob
 
+
+if __name__== '__main__':
+    #f = open('results2.txt', 'w')
+    for cutoff in [.2]:
+        for i,obj in enumerate(open('newlist.txt')):
+            obj = int(obj)            
+            path = '/home/dwm261/public_html/Quasars/new/{}'.format(obj)
+            print path
+            try:
+                os.mkdir(path)
+            except:
+                pass
+            best, bestprob = run_all(obj, path, 'posdelta-{}'.format(cutoff),cutoff)
+            result = [obj, cutoff, bestprob]
+            result.extend(best)
+            print result
+            #f.write('{}\n'.format(result))
+    #f.close()

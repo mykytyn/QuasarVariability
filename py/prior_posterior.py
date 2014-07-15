@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import pyfits
 import utils
 from QuasarVariability import *
-import stripe82
 
 def graph_prior_and_posterior(data, pars, onofflist, default, prefix='quasar'):
     bands_dict = data.get_banddict()
@@ -30,7 +29,7 @@ def graph_prior_and_posterior(data, pars, onofflist, default, prefix='quasar'):
                                                         final_time, dt,
                                                         bandlist)
     print "best pars ", pars
-    quasar = QuasarVariability(newRandomWalk(default[5:], onofflist, wavelengths, base), default[0:5])
+    quasar = QuasarVariability(RandomWalk(default[5:], onofflist, wavelengths, base), default[0:5])
     quasar.unpack_pars(pars)
     plt.clf()
     pmean = quasar.get_mean_vector(timegrid, bandsgrid)
@@ -38,9 +37,7 @@ def graph_prior_and_posterior(data, pars, onofflist, default, prefix='quasar'):
     pmean = np.array(pmean).reshape(timegrid.shape)
     psig = np.sqrt(np.diag(np.array(Vpp)))
     print pmean, Vpp, pmean, psig
-    utils.make_prior_plots(quasar, timegrid, bandsgrid, pmean, psig, medians,
-                               bandlist)
-    plt.savefig("%s-prior.png" % prefix)
+    priorplot = utils.make_prior_plots(quasar, timegrid, bandsgrid, pmean, psig, medians, bandlist)
 
     plt.clf()
     pmean, Vpp = quasar.get_conditional_mean_and_variance(timegrid, bandsgrid,
@@ -48,16 +45,5 @@ def graph_prior_and_posterior(data, pars, onofflist, default, prefix='quasar'):
                                                           bandsnum, sigmas)
     pmean = np.array(pmean).reshape(timegrid.shape)
     psig = np.sqrt(np.diag(np.array(Vpp)))
-    utils.make_posterior_plots(quasar, times, mags, bandsnum, sigmas,
-                                   timegrid, bandsgrid, pmean, psig, medians,bandlist)
-    plt.savefig("%s-posterior.png" % prefix)
-
-
-def main():
-    objid = 587730845812064296
-    data = stripe82.Stripe82(objid)
-    graph_prior_and_posterior(data,prefix='obj-{}'.format(objid))
-
-
-if __name__ == '__main__':
-    main()
+    posteriorplot = utils.make_posterior_plots(quasar, times, mags, bandsnum, sigmas, timegrid, bandsgrid, pmean, psig, medians,bandlist)
+    return priorplot, posteriorplot

@@ -1,184 +1,14 @@
 import numpy as np
 from scipy import linalg
-if __name__ == '__main__':
-    import matplotlib
-    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import pyfits
 import emcee
 import utils
-import triangle
-import stripe82
 
 init_tau = 50.
 wavelengths = [3543., 4770., 6231., 7625., 9134.]
 base = 2
 
-
 class RandomWalk:
-    def __init__(self, pars, fixedTau=False):
-        """
-        Inputs: pars, as a list of :
-        a: amplitudes of each band
-        tau: scalar of time scale (in days)
-        base(unneeded)
-        wavelength (unneeded)
-        fixedTau: turns on and off tau
-        Outputs: None
-        Comments: Damped random walk model
-        """
-        self.set_pars(pars)
-        self.fixedTau = fixedTau
-
-    def _get_kernal_matrix(self, t1, b1, t2, b2):
-        return np.array(self.a[b1[:, None]] * self.a[b2[None, :]] *
-                        np.exp(-1. / self.tau * np.abs(t1[:, None] -
-                                                       t2[None, :])))
-
-    def get_variance_tensor(self, times, bands, sigmas=None):
-        """
-        Inputs: times: an array of times (in days)
-                bands: a vector associating each point with a band
-                       (using 0=u, etc.)
-                sigmas: an array of variances
-        Outputs:
-                the variance tensor
-        Comments:
-        """
-        tt = self._get_kernal_matrix(times, bands, times, bands)
-        if sigmas is None:
-            return tt
-        assert len(sigmas) == len(times)
-        return tt + np.diag(sigmas ** 2)
-
-    def set_pars(self, pars):
-        self.a = pars[0:5]
-        if not fixedTau:
-            self.tau = pars[6]
-
-    def get_pars(self):
-        if not self.fixedTau:
-            return self.a, self.tau
-        return self.a
-
-    def get_packed_pars(self):
-        if not self.fixedTau:
-            return np.log(self.a), np.log(self.tau)
-        return np.log(self.a)
-
-    def get_priors(self):
-        """
-        Priors still in progress!!!
-        Use with caution!!!
-        """
-        prior = 0.
-        if self.fixedTau:
-            amps = self.get_pars()
-        else:
-            amps, tau = self.get_pars()
-            prior += utils.ln_1d_gauss(tau, 5., 2.)
-        for a in amps:
-            prior += utils.ln_1d_gauss(a, -1., 1)
-        return prior
-
-    def get_labels(self):
-        if self.fixedTau:
-            return ['mean u', 'mean g', 'mean r', 'mean i',
-                    'mean z', 'ln a_u', 'ln a_g', 'ln a_r',
-                    'ln a_i', 'ln a_z', 'ln_tau']
-        else:
-            return ['mean u', 'mean g', 'mean r', 'mean i',
-                    'mean z', 'ln a_u', 'ln a_g', 'ln a_r',
-                    'ln a_i', 'ln a_z']
-
-
-class RandomWalkAlpha:
-    def __init__(self, pars, wavelengths, base, fixedTau=False):
-        """
-        Inputs: pars as a list containg:
-        a_r: amplitude of the base band
-        alpha: exponent for the amplitudes
-        tau: scalar of time scale (in days)
-        and
-        wavelengths: wavelengths of the different bands
-        base: which band is the base (index)
-        fixedTau: which turns on and off fixing Tau
-        Outputs: None
-        Comments: Damped random walk model
-        """
-
-        self.wavelengths = wavelengths
-        self.base = base
-        self.fixedTau = fixedTau
-        self.set_pars(pars)
-
-    def _get_coef(self, band):
-        coef = self.a_r * ((self.wavelengths[band] /
-                            self.wavelengths[self.base]) ** self.alpha)
-        return coef
-
-    def _get_kernal_matrix(self, t1, b1, t2, b2):
-        return np.array(self.a[b1[:, None]] * self.a[b2[None, :]] *
-                        np.exp(-1. / self.tau * np.abs(t1[:, None] -
-                                                       t2[None, :])))
-
-    def get_variance_tensor(self, times, bands, sigmas=None):
-        """
-        Inputs: times: an array of times (in days)
-                bands: a vector associating each point with a band
-                       (using 0=u, etc.)
-                sigmas: an array of variances
-        Outputs:
-                the variance tensor
-        Comments:
-        """
-        tt = self._get_kernal_matrix(times, bands, times, bands)
-        if sigmas is None:
-            return tt
-        assert len(sigmas) == len(times)
-        return tt + np.diag(sigmas ** 2)
-
-    def set_pars(self, pars):
-        self.a_r = np.exp(pars[0])
-        self.alpha = pars[1]
-        assert not np.isnan(self.alpha)
-        if not self.fixedTau:
-            self.tau = np.exp(pars[2])
-        self.a = np.array([self._get_coef(x) for
-                           x in range(len(self.wavelengths))])
-
-    def get_pars(self):
-        if not self.fixedTau:
-            return self.a_r, self.alpha, self.tau
-        return self.a_r, self.alpha
-
-    def get_packed_pars(self):
-        if not self.fixedTau:
-            return np.log(self.a_r), self.alpha, np.log(self.tau)
-        else:
-            return np.log(self.a_r), self.alpha
-
-    def get_priors(self):
-        prior = 0
-        if not self.fixedTau:
-            a_r, alpha, tau = self.get_pars()
-            prior += utils.ln_1d_gauss(tau, 5., 2.)
-        else:
-            a_r, alpha = self.get_pars()
-        prior += utils.ln_1d_gauss(a_r, -1., 1)
-        prior += utils.ln_1d_gauss(alpha, -1., .25)
-        return prior
-
-    def get_labels(self):
-        if self.fixedTau:
-            return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                    'ln a_r', 'alpha', 'ln_tau']
-        else:
-            return ['mean u', 'mean g', 'mean r', 'mean i', 'mean z',
-                    'ln a_r', 'alpha']
-
-
-class newRandomWalk:
     def __init__(self, pars, onofflist, wavelengths, base):
         """
         Inputs: pars, as a list containing:
@@ -293,6 +123,8 @@ class newRandomWalk:
             prior += utils.ln_1d_gauss(np.log(tau), 6., 2.)
             #prior += self.top_hat_prior(np.log(tau), 5., 2., 3., 100.)
         if self.onofflist[3]:
+            if delta_r<0:
+                return -np.inf
             prior += utils.ln_1d_gauss(delta_r, 0., 1.)
         if self.onofflist[4]:
             prior += utils.ln_1d_gauss(gamma, -1., .25)  # irrelevant
@@ -462,73 +294,49 @@ class QuasarVariability:
 
     def mc_ln_prob(self, pars, mags, times, bands, sigmas):
         self.unpack_pars(pars)
+        prior = self.ln_prior()
+        if np.isinf(prior):
+            return -np.inf
         return (self.ln_likelihood(mags, times, bands, sigmas)[0, 0]
-                + self.ln_prior())
+                + prior)
 
     def get_labels(self):
         return self.get_covar().get_labels()
 
 
 def temp_ln(pars, mags, times, bands, sigmas, default_pars,
-            onofflist, alpha=False, noTau=False, newCovar=False):
-    if newCovar:
-        tempObj = QuasarVariability(newRandomWalk(default_pars[5:],
-                                                  onofflist, wavelengths,
-                                                  base),
-                                    default_pars[0:5])
-    elif alpha:
-        tempObj = QuasarVariability(RandomWalkAlpha(default_pars[5:],
-                                                    onofflist, wavelengths,
-                                                    base, noTau),
-                                    default_pars[0:5])
-    else:
-        tempObj = QuasarVariability(RandomWalk(default_pars[5:, ],
-                                               onofflist, noTau,
-                                               wavelengths, base),
-                                    default_pars[0:5])
+            onofflist):
+    tempObj = QuasarVariability(RandomWalk(default_pars[5:],
+                                           onofflist, wavelengths,
+                                           base),
+                                default_pars[0:5])
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
 
 
-def run_mcmc(data, num_steps, initialp0, default, onofflist,
-             noTau=False, alpha=False, newCovar=False, nthreads=1,
-             nwalkers=32):
-    mags = data.get_mags()
-    sigmas = data.get_sigmas()
-    bands = data.get_bands()
-    times = data.get_times()
-    bandnames = data.get_bandlist()
-    dt = 30.
-    initialtime = np.min(times) - 50
-    finaltime = np.max(times) + 50
-    timegrid, bandgrid = utils.make_band_time_grid(initialtime,
-                                                   finaltime, dt, bandnames)
-    if alpha:
-        qv = QuasarVariability(
-            RandomWalkAlpha(initialp0[5:], onofflist,
-                            wavelengths, base, noTau),
-            initialp0[:5])
-    elif newCovar:
-        qv = QuasarVariability(
-            newRandomWalk(default[5:], onofflist,
-                          wavelengths, base), default[:5])
-    else:
-        qv = QuasarVariability(RandomWalk(default[5:], onofflist,
-                                          wavelengths, base), default[:5])
+def run_mcmc(quasar_data, num_steps, default, onofflist,
+             nthreads=1, nwalkers=16):
+    mags, times, bands, sigmas, bad = quasar_data.get_data()
+    bandnames = quasar_data.get_bandlist()
+
+    params = np.array(default[5:])
+    params = params[np.array(onofflist)]
+    p0 = np.concatenate([default[:5], params])
+
+    qv = QuasarVariability(
+        RandomWalk(default[5:], onofflist,
+                   wavelengths, base), default[:5])
 
     labels = qv.get_labels()
     ndim = len(labels)
     labels.append('ln_prob')
 
     #p0 = qv.pack_pars()
-    p0 = initialp0
-    print p0
 
     initial = []
     for i in range(nwalkers):  # could probably be improved -mykytyn
         pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
         initial.append(pp)
-    arguments = [mags, times, bands, sigmas, default, onofflist,
-                 alpha, noTau, newCovar]
+    arguments = [mags, times, bands, sigmas, default, onofflist]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
                                     args=arguments, threads=nthreads)
 
