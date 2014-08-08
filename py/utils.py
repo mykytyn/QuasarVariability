@@ -5,19 +5,18 @@ import matplotlib.pyplot as plt
 import triangle
 
 
+
 def make_triangle_plot(sampler, labels):
     lnprob = sampler.lnprobability.flatten()
     trichain = np.column_stack((sampler.flatchain, lnprob))
     extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
                     x in np.hsplit(trichain, trichain.shape[1])])
     extents.append([np.min(lnprob[np.isfinite(lnprob)]), np.max(lnprob)])
-    print extents
     return triangle.corner(trichain, labels=labels, extents=extents)
 
 
 def get_best_lnprob(sampler):
     highln = np.argmax(sampler.lnprobability)
-    print np.max(sampler.lnprobability)
     return sampler.flatchain[highln], sampler.lnprobability.flatten()[highln]
 
 
@@ -191,9 +190,21 @@ def grid_search_obj_all(obj, grid=None):
     return np.array(means), np.array(amps)
 
 
+def plot_points(ax, mags, times, errors, colors, median):
+    #put in **kwargs
+    for m, t, e, c in zip(mags, times, errors, colors):
+        if np.abs(m-median)<.75:
+            ax.errorbar(t, m, yerr=e, ecolor=c, linestyle='none', color=c, marker='.', alpha=.75)
+        elif m-median>.75:
+            ax.errorbar(t,median+.7, ecolor=c, linestyle='none', color=c, marker='^', alpha=.75)
+        else:
+            ax.errorbar(t,median-.7, ecolor=c, linestyle='none', color=c, marker='v', alpha=.75)
+    return ax
+
 def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
                      num_samps=8):
     """
+    I BROKE THIS SOMEHOW SORRY WILL FIX SORRY
     Inputs: quasarobj: obj for the quasar we care about
             timegrid: grid of sample points
             bands: grid of bands matching the timegrid
@@ -221,7 +232,6 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
         btimegrid = timegrid[mask]
         bpmean = pmean[mask]
         bpsig = psig[mask]
-        print bpmean[0], bpsig[0]
         ax.plot(btimegrid, bpmean, 'k-')
         ax.plot(btimegrid, bpmean-bpsig, 'k-')
         ax.plot(btimegrid, bpmean+bpsig, 'k-')
@@ -232,56 +242,77 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
         ax.set_ylim(means[i] - .75, means[i] + .75)
     return fig
 
-def make_posterior_plots(quasarobj, times, mags, bands, sigmas, timegrid,
-                         bandsgrid, pmean, psig, means, bandlist, num_samps=8):
+def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
     """
-    Inputs: quasarobj: obj for the quasar we care about
-            times: measured times
-            mags: measured mags
-            bands: bands matching each mag
-            sigmas: measured sigmas
-            timegrid: grid of sample points
-            bands: grid of bands matching the timegrid
-            pmean: the mean at each point matching the timegrid
-            psig: the sigma at each point matching the timegrid
-            means: the overall means in each band
+    Inputs: quasar: obj for the quasar we care about
+            quasar_data: data for quasar
+            deltalns: changes to lnprob for each set of points
             num_samps (optional) number of samples to plot
-    Note: should probably return a figure object at some point
-           but i have not written that yet
     """
+    bands_dict = quasar_data.get_banddict()
+    totalmags, totaltimes, totalbands, totalsigmas, totalbad = quasar_data.get_data()
+    bandsname = quasar_data.get_bandnames()
+    bandlist = quasar_data.get_bandlist()
+    medians = []
+    dt = 1.0
+    initial_time = np.min(totaltimes)-25
+    final_time = np.max(totaltimes)+25
+
+    timegrid, bandsgrid = make_band_time_grid(initial_time,
+                                              final_time, dt,
+                                              bandlist)
+
+    for i in range(5):
+        mask = [totalbands == i]
+        medians.append(np.median(totalmags[mask]))
+
+    
+    pmean, Vpp = quasar.get_conditional_mean_and_variance(timegrid, bandsgrid,
+                                                          totalmags, totaltimes,
+                                                          totalbands, totalsigmas)
+    pmean = np.array(pmean).reshape(timegrid.shape)
+    psig = np.sqrt(np.diag(np.array(Vpp)))
+
 
     fig = plt.figure()
     fig.subplots_adjust(hspace=0, top=.95)
     maggrids = []
     matplotlib.rc('xtick', labelsize=8)
     matplotlib.rc('ytick', labelsize=8)
+    if deltalns is not None:
+        mindeltalns = np.min(deltalns)
+        deltalns = deltalns-mindeltalns
+        maxdeltalns = np.max(deltalns)
 
     for i in range(num_samps):
-        maggrid = quasarobj.get_conditional_sample(timegrid, bandsgrid,
-                                                   mags, times, bands,
-                                                   sigmas)
+        maggrid = quasar.get_conditional_sample(timegrid, bandsgrid,
+                                                   totalmags, totaltimes, totalbands,
+                                                   totalsigmas)
         maggrid = np.array(maggrid).reshape(timegrid.shape)
         maggrids.append(maggrid)
 
     for i in range(5):
         ax = fig.add_subplot(511 + i)
-        maskgrid = [bandsgrid == i]
-        mask = [bands == i]
         ax.label_outer()
-        ax.set_ylabel('%s' % bandlist[i])
-        ax.errorbar(times[mask], mags[mask], yerr=sigmas[mask],
-                     linestyle='none', color='black', marker='.')
+        maskgrid = [bandsgrid == i]
+        mags, times, bands, sigmas, bad = quasar_data.get_data(bandname = bandlist[i])
+        print sigmas.shape
+        if deltalns is not None:
+            colors = [str(1-x/maxdeltalns) for x in deltalns]
+        else:
+            colors = ['black']*len(mags)
+        plot_points(ax, mags, times, sigmas, colors, medians[i])
         btimegrid = timegrid[maskgrid]
         bpmean = pmean[maskgrid]
         bpsig = psig[maskgrid]
-        ax.plot(btimegrid, bpmean, 'k-')
-        ax.plot(btimegrid, bpmean-bpsig, 'k-')
-        ax.plot(btimegrid, bpmean+bpsig, 'k-')
+        ax.plot(btimegrid, bpmean, 'k-', lw=.5)
+        ax.plot(btimegrid, bpmean-bpsig, 'k-', lw=.5, alpha=.5)
+        ax.plot(btimegrid, bpmean+bpsig, 'k-', lw=.5, alpha=.5)
         for j in range(num_samps):
             maggrid = maggrids[j]
             ax.plot(btimegrid, maggrid[maskgrid], 'k-', alpha=0.25)
 
-        ax.set_ylim(means[i] - .75, means[i] + .75)
+        ax.set_ylim(medians[i] - .75, medians[i] + .75)
     return fig
 
 def make_data_plots(obj):

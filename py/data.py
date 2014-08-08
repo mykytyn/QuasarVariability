@@ -20,17 +20,21 @@ class QuasarData:
             mask = np.logical_and(mask, np.logical_not(self.bad))
         return self.mags[mask]
 
-    def get_sigmas(self, bandname=None, include_bad=False):
+    def get_sigmas(self, bandname=None, include_bad=False, original=False):
         """
         Returns all sigmas if no argument given,
         else if given a bandname it returns only that band
         """
+        if original:
+            sigmas = self.sigmas
+        else:
+            sigmas = self.newsigmas
         mask = np.ones(len(self.mags),dtype=bool)
         if bandname:
             mask = np.logical_and(mask, self.bandnames == bandname)
         if not include_bad:
             mask = np.logical_and(mask, np.logical_not(self.bad))
-        return self.sigmas[mask]
+        return sigmas[mask]
 
     def get_times(self, bandname=None, include_bad=False):
         """
@@ -88,12 +92,20 @@ class QuasarData:
             return self.bad[mask]
         return self.bad
 
-    def get_data(self, bandname=None, include_bad=False):
+    def remove_point(self, time):
+        badtimes = [x for x in self.times if np.any(
+                np.abs(x - time) < .25)]
+        mask2 = np.zeros(len(self.times), dtype=bool)
+        for x in badtimes:
+            mask2 = np.logical_or(mask2, self.times == x)
+        self.bad = np.logical_or(mask2, self.bad)
+
+    def get_data(self, bandname=None, include_bad=False, original=False):
         """
         Returns all data in the form of: mags, times, bands, sigmas
         If given a bandname only returns that band
         """
-        return [self.get_mags(bandname, include_bad), self.get_times(bandname, include_bad), self.get_bands(bandname, include_bad), self.get_sigmas(bandname, include_bad), self.get_bad_mask(bandname)]
+        return [self.get_mags(bandname, include_bad), self.get_times(bandname, include_bad), self.get_bands(bandname, include_bad), self.get_sigmas(bandname, include_bad, original), self.get_bad_mask(bandname)]
 
 class Stripe82 (QuasarData):
     """
@@ -115,6 +127,7 @@ class Stripe82 (QuasarData):
         self.bandnames = []
         self.sigmas = []
         self.times = []
+        self.newsigmas = []
 
         for i in range(5):
             name = self.bandlist[i]
@@ -131,6 +144,7 @@ class Stripe82 (QuasarData):
         self.sigmas = np.array(self.sigmas)
         self.times = np.array(self.times)
         self.bad = np.zeros(len(self.times), dtype=bool)
+        self.newsigmas = self.sigmas
         temp.close()
 
     def remove_bad_data(self, cutoff, interval):
@@ -139,7 +153,6 @@ class Stripe82 (QuasarData):
         interval: interval in days
         This finds points which have a variance greater than cutoff, and flags points that are closer than interval to those points
         """
-        
         mask = self.sigmas > cutoff
         badtimes = [x for x in self.times if np.any(
                 np.abs(x - self.times[mask]) < interval)]
@@ -149,7 +162,14 @@ class Stripe82 (QuasarData):
         self.bad = mask2
         mask2 = np.logical_not(mask2)
 
-        
+    def IRLS_update_sigmas(self, quasar, Q=5.):
+        mags, times, bands, newsigmas, bads = self.get_data(original=False)        
+        condmags, condvars = quasar.get_conditional_mean_and_variance(times, bands, mags, times, bands, newsigmas)
+        condvars = np.diag(condvars)
+        condmags = condmags.flatten()
+        oldsigmas = self.get_sigmas(original=True)
+        badness = (mags-condmags)**2 / (oldsigmas**2+condvars)
+        self.newsigmas=oldsigmas*np.sqrt((Q*Q+badness)/(Q*Q)) #Should the first term be original or new?
 
 
 class MockPanstarrs(Stripe82):

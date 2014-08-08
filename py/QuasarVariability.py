@@ -34,12 +34,13 @@ class RandomWalk:
         self.tau = np.exp(pars[2])
         self.delta_r = pars[3]
         self.gamma = pars[4]
+        self.S = pars[5] #log?
         self.a = np.array([self._get_coef(x, self.a_r, self.alpha)
                            for x in range(len(self.wavelengths))])
         self.delta = np.array([self._get_coef(x, self.delta_r, self.gamma)
                                for x in range(len(self.wavelengths))])
         self.par_list = [self.a_r, self.alpha, self.tau,
-                         self.delta_r, self.gamma]
+                         self.delta_r, self.gamma, self.S]
 
     def _get_coef(self, band, coef, exponent):
         coef = coef * ((self.wavelengths[band] / self.wavelengths[self.base])
@@ -64,6 +65,7 @@ class RandomWalk:
         Comments:
         """
         tt = self._get_kernal_matrix(times, bands, times, bands)
+        tt = tt + np.identity(tt.shape[0])*(self.S**2)
         if sigmas is None:
             return tt
         assert len(sigmas) == len(times)
@@ -87,13 +89,16 @@ class RandomWalk:
         if self.onofflist[4]:
             self.gamma = pars[counter]
             counter += 1
+        if self.onofflist[5]:
+            self.S = pars[counter] #log?
+            counter +=1
         self.a = np.array([self._get_coef(x, self.a_r, self.alpha)
                            for x in range(len(self.wavelengths))])
         self.delta = np.array([self._get_coef(x, self.delta_r, self.gamma)
                                for x in range(len(self.wavelengths))])
 
     def get_pars(self):
-        return self.a_r, self.alpha, self.tau, self.delta_r, self.gamma
+        return self.a_r, self.alpha, self.tau, self.delta_r, self.gamma, self.S
 
     def get_packed_pars(self):
         packs = []
@@ -114,7 +119,7 @@ class RandomWalk:
 
     def get_priors(self):
         prior = 0
-        a_r, alpha, tau, delta_r, gamma = self.get_pars()
+        a_r, alpha, tau, delta_r, gamma, S = self.get_pars()
         if self.onofflist[0]:
             prior += utils.ln_1d_gauss(np.log(a_r), -1., 1.)
         if self.onofflist[1]:
@@ -128,12 +133,16 @@ class RandomWalk:
             prior += utils.ln_1d_gauss(delta_r, 0., 1.)
         if self.onofflist[4]:
             prior += utils.ln_1d_gauss(gamma, -1., .25)  # irrelevant
+        if self.onofflist[5]:
+            if S<0:
+                return -np.inf
+            prior += 0 #CHANGE
         return prior
 
     def get_labels(self):
         labels = ['mean u', 'mean g', 'mean r', 'mean i', 'mean z']
         for status, par in zip(self.onofflist, ['ln a_r', 'alpha',
-                                                'ln tau', 'delta_r', 'gamma']):
+                                                'ln tau', 'delta_r', 'gamma','S']):
             if status:
                 labels.append(par)
         return labels
@@ -212,9 +221,7 @@ class QuasarVariability:
             #assert logdet - np.linalg.slogdet(V)[1] < 10**-8
             return -.5 * logdet + -0.5 * np.dot(dx.T, alpha)
         except:
-            print "Parameters:  ", self.get_covar().get_pars()
-            print "Eigenvalues of Kernal with Sigmas: ", np.linalg.eig(V)
-            raise
+            return -np.inf
 
     def ln_likelihood(self, mags, times, bands, sigmas):
         """
@@ -297,8 +304,11 @@ class QuasarVariability:
         prior = self.ln_prior()
         if np.isinf(prior):
             return -np.inf
-        return (self.ln_likelihood(mags, times, bands, sigmas)[0, 0]
-                + prior)
+        likelihood = self.ln_likelihood(mags, times, bands, sigmas)
+        if np.isinf(likelihood):
+            return -np.inf
+        else:
+            return likelihood[0, 0] + prior
 
     def get_labels(self):
         return self.get_covar().get_labels()
@@ -314,7 +324,7 @@ def temp_ln(pars, mags, times, bands, sigmas, default_pars,
 
 
 def run_mcmc(quasar_data, num_steps, default, onofflist,
-             nthreads=1, nwalkers=16):
+             pool, nwalkers=16):
     mags, times, bands, sigmas, bad = quasar_data.get_data()
     bandnames = quasar_data.get_bandlist()
 
@@ -338,7 +348,7 @@ def run_mcmc(quasar_data, num_steps, default, onofflist,
         initial.append(pp)
     arguments = [mags, times, bands, sigmas, default, onofflist]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
-                                    args=arguments, threads=nthreads)
+                                    args=arguments, pool=pool)
 
     pos, prob, state = sampler.run_mcmc(initial, num_steps)
 
