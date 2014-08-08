@@ -11,7 +11,6 @@ from multiprocessing import Pool
 import cPickle
 
 def run_all(objid, path, prefix, pool, cutoff=.2, S=False):#rename S
-    obj = int(objid)   
     num_steps = 128
     nwalkers = 32
     quasar_data = data.Stripe82(obj)
@@ -22,6 +21,7 @@ def run_all(objid, path, prefix, pool, cutoff=.2, S=False):#rename S
     print "starting grid search"
     init_means, init_amps = utils.grid_search_all_bands(quasar_data.get_mags(),quasar_data.get_sigmas(),quasar_data.get_bands()) #reminder, look at this func
     #a_r, alpha, tau, delta_r, gamma, S
+
     if S:
         onofflist = [True, True, True, True, False, True]
     else:
@@ -40,56 +40,67 @@ def run_all(objid, path, prefix, pool, cutoff=.2, S=False):#rename S
 
     sampler.reset()
     pos, prob, state = sampler.run_mcmc(pos, num_steps)
-    acors = []
-    count = 1
 
-    print "running mcmc"
-    while num_steps*count < 64*np.median(sampler.acor) and count<1: #this can be better i think
-        print 64*np.median(sampler.acor), num_steps*count
-        acors.append(sampler.acor)
-        count += 1
-        pos, prob, state = sampler.run_mcmc(pos, num_steps)
-    print "triangle plot"
-    utils.make_triangle_plot(sampler, labels).savefig('{}/{}-triangle.png'.format(path, prefix))
-    print "walker plots"
-    walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
-    for par,plot in zip(labels,walker_plots):
-        plot.savefig('{}/{}-walker-{}.png'.format(path, prefix, par))
-    plt.clf()
 
-    #MOVE THIS INTO UTILS, PLOT
-    #steps_plot = range(len(acors))
-    #steps_plot = [num_steps*(x+1) for x in steps_plot]
+    def main_mcmc(): #TEMP TEMP TEMP skeleton does not work! TEMP
+        acors = []
+        count = 1
 
-    #for j,par in enumerate(labels):
-        #if par == "ln_prob":
-            #continue
-        #plt.plot(steps_plot,[x[j] for x in acors], label='%s' % par)
+        print "running mcmc"
+        while num_steps*count < 64*np.median(sampler.acor) and count<1: #this can be better i think
+            print 64*np.median(sampler.acor), num_steps*count
+            acors.append(sampler.acor)
+            count += 1
+            pos, prob, state = sampler.run_mcmc(pos, num_steps)
 
-    #plt.xlabel('Number of steps')
-    #plt.ylabel('acor')
-    #plt.legend(loc='upper left')
-    #plt.savefig('{}/{}-acor.png'.format(path,prefix))
+    def triangle_and_walker(): #TEMP TEMP TEMP skeleton does not work! TEMP
+        print "triangle plot"
+        utils.make_triangle_plot(sampler, labels).savefig('{}/{}-triangle.png'.format(path, prefix))
+        print "walker plots"
+        walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
+        for par,plot in zip(labels,walker_plots):
+            plot.savefig('{}/{}-walker-{}.png'.format(path, prefix, par))
+        plt.clf()
 
-    bestparams, bestprob = utils.get_best_lnprob(sampler)
+    def acor_plot(): #TEMP TEMP TEMP skeleton does not work! TEMP
+        #p.s. make this object-oriented etc., move to utils
+        steps_plot = range(len(acors))
+        steps_plot = [num_steps*(x+1) for x in steps_plot]
 
-    """oldtimes = quasar_data.get_times(bandname='r')
-    oldbad = quasar_data.get_bad_mask()
-    deltalns = []
-    for time in oldtimes:
-        quasar_data.remove_point(time)
-        mags, times, bands, sigmas, bads = quasar_data.get_data()
-        deltaln = qv.temp_ln(bestparams, mags, times, bands, sigmas, default, onofflist)-bestprob
-        print deltaln
-        deltalns.append(deltaln)
-        print len(deltalns)
-        quasar_data.bad = oldbad
-    """
-    quasar = qv.QuasarVariability(qv.RandomWalk(default[5:], onofflist, qv.wavelengths, qv.base), default[0:5])
-    quasar.unpack_pars(bestparams)
+        for j,par in enumerate(labels):
+            if par == "ln_prob":
+                continue
+            plt.plot(steps_plot,[x[j] for x in acors], label='%s' % par)
+
+        plt.xlabel('Number of steps')
+        plt.ylabel('acor')
+        plt.legend(loc='upper left')
+        plt.savefig('{}/{}-acor.png'.format(path,prefix))
+
+    #bestparams, bestprob = utils.get_best_lnprob(sampler)
+
+
+    def calc_delta_ln(bestparams, quasar_data, default, onofflist): #move to utils or delete?
+        oldtimes = quasar_data.get_times(bandname='r')
+        oldbad = quasar_data.get_bad_mask()
+        deltalns = []
+        for time in oldtimes:
+            quasar_data.remove_point(time)
+            mags, times, bands, sigmas, bads = quasar_data.get_data()
+            deltaln = qv.temp_ln(bestparams, mags, times, bands, sigmas, default, onofflist)-bestprob
+            print deltaln
+            deltalns.append(deltaln)
+            print len(deltalns)
+            quasar_data.bad = oldbad
+    
+    #quasar = qv.QuasarVariability(qv.RandomWalk(default[5:], onofflist, qv.wavelengths, qv.base), default[0:5])
+    #quasar.unpack_pars(bestparams)
     #f = open('test.pickle', 'w')
     #cPickle.dump(quasar, f)
     #f.close()
+    f = open('test.pickle', 'r')
+    quasar = cPickle.load(f)
+    f.close()
     print "Making posteriors/IRLS"
     for i in range(5):
         #priorplot.savefig('{}/{}-prior.png'.format(path,prefix))
