@@ -218,6 +218,11 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
     Note: should probably return a figure object at some point
            but i have not written that yet
     """
+    plt.clf()
+    pmean = quasar.get_mean_vector(timegrid, bandsgrid)
+    Vpp = quasar.get_variance_tensor(timegrid, bandsgrid)
+    pmean = np.array(pmean).reshape(timegrid.shape)
+    psig = np.sqrt(np.diag(np.array(Vpp)))
     fig = plt.figure()
     fig.subplots_adjust(hspace=0, top=.95)
     maggrids = []
