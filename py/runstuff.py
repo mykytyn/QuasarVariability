@@ -13,6 +13,11 @@ import cPickle
 
 
 def make_default(quasar_data):
+    """
+    Generates default parameters for start of MCMC and for IRLS
+    todo: make these adjustable and less magic perhaps?
+    optimization?
+    """
     default = []
     for b in ['u', 'g', 'r', 'i', 'z']:
         default.append(np.median(quasar_data.get_mags(bandname=b)))
@@ -29,6 +34,10 @@ def make_default(quasar_data):
 
 def initialize_mcmc(quasar_data, default, onofflist,
                    pool, nwalkers=16, quasar=None):
+    """
+    Generates a emcee sampler object and initial position of walkers
+    todo: probably does not need its own function, can be moved into an other
+    """
     print "initializing sampler"
     mags, times, bands, sigmas, bad = quasar_data.get_data()
     bandnames = quasar_data.get_bandlist()
@@ -57,6 +66,9 @@ def initialize_mcmc(quasar_data, default, onofflist,
 
 
 def burn_in(sampler, num_steps, initial):
+    """
+    Runs a "burn-in" for specified number of steps starting from initial position given
+    """
     print "starting mcmc burn in"
     pos, prob, state = sampler.run_mcmc(initial, num_steps)
     sampler.reset()
@@ -64,7 +76,10 @@ def burn_in(sampler, num_steps, initial):
 
 
 
-def main_mcmc(sampler, pos, stepsize, acorsteps, maxcount): #TEMP TEMP TEMP skeleton does not work! TEMP
+def main_mcmc(sampler, pos, stepsize, acorsteps, maxcount):
+    """
+    Runs emcee until either a max is returned or the acor has become small enough compared to the steps
+    """
     acors = []
     count = 0
 
@@ -80,7 +95,10 @@ def main_mcmc(sampler, pos, stepsize, acorsteps, maxcount): #TEMP TEMP TEMP skel
 
     return pos, prob, state
 
-def triangle_and_walker(sampler, labels, path, prefix, nwalkers): #TEMP TEMP TEMP skeleton does not work! TEMP
+def triangle_and_walker(sampler, labels, path, prefix, nwalkers):
+    """
+    Generates and saves the triangle and walker plots for the outcome of an mcmc process
+    """
     print "triangle plot"
     utils.make_triangle_plot(sampler, labels).savefig('{}/{}-triangle.png'.format(path, prefix))
     #print "walker plots"
@@ -90,7 +108,10 @@ def triangle_and_walker(sampler, labels, path, prefix, nwalkers): #TEMP TEMP TEM
     #plt.clf()
 
 def acor_plot(): #TEMP TEMP TEMP skeleton does not work! TEMP
-    #p.s. make this object-oriented etc., move to utils
+    """ 
+    Does not work, should give acor for each parameter by number of steps
+    p.s. make this object-oriented etc., move to utils
+    """
     steps_plot = range(len(acors))
     steps_plot = [num_steps*(x+1) for x in steps_plot]
 
@@ -105,18 +126,13 @@ def acor_plot(): #TEMP TEMP TEMP skeleton does not work! TEMP
     plt.savefig('{}/{}-acor.png'.format(path,prefix))
 
 
-#f = open('test.pickle', 'w')
-#cPickle.dump(quasar, f)
-#f.close()
-
-def run_irls(quasar, quasar_data, path, prefix, Q=5, num_samps=0, repeats=5):
+def run_irls(quasar, quasar_data, Q=5, num_samps=0, repeats=5):
+    """
+    Updates sigmas according to IRLS
+    """
     for i in range(repeats):
         print "UPDATING SIGMAS {}".format(i)
         quasar_data.IRLS_update_sigmas(quasar, Q=Q)
-        print "MAKING POSTERIOR PLOT {}".format(i)
-        #utils.make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=num_samps).savefig('{}/{}-IRLS-{}-posterior.png'.format(path,prefix,i))
-
-
 
 if __name__== '__main__':
     pool = Pool(10)
@@ -148,24 +164,11 @@ if __name__== '__main__':
 
         default = make_default(quasar_data)
 
-        #f = open('test.pickle', 'r')
-        #quasar = cPickle.load(f)
-        #f.close()
-        onofflist = [True, True, True, True, False, False]
-        #sampler, labels, initial = initialize_mcmc(quasar_data, default, onofflist, pool, nwalkers, quasar=None)
-        #pos, prob, state = burn_in(sampler, num_steps, initial)
-        #pos, prob, state = main_mcmc(sampler, pos, stepsize, acorsteps, maxcount)
-        #triangle_and_walker(sampler, labels, path, prefix, nwalkers)        
-        #bestparams, bestprob = utils.get_best_lnprob(sampler)
-
-
         quasar = qv.QuasarVariability(qv.RandomWalk(default[5:], onofflist, qv.wavelengths, qv.base), default[0:5])
         utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-orig-posterior.png'.format(path,prefix))
-        run_irls(quasar,quasar_data, path, prefix, Q=1., repeats=10)
+        run_irls(quasar,quasar_data, Q=1., repeats=10)
         utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-final-posterior.png'.format(path,prefix))
-        onofflist = [True, True, True, True, False, False]
 
-        prefix = prefix+'-new-'
         sampler, labels, initial = initialize_mcmc(quasar_data, default, onofflist, pool, nwalkers, quasar=None)
         pos, prob, state = burn_in(sampler, num_steps, initial)
         pos, prob, state = main_mcmc(sampler, pos, stepsize, acorsteps, maxcount)
