@@ -3,3 +3,5 @@
 *.pdf
 *.log
 *.pyc
+*.pickle
+*.png
