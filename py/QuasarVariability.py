@@ -5,7 +5,7 @@ import emcee
 import utils
 
 init_tau = 50.
-wavelengths = [3543., 4770., 6231., 7625., 9134.]
+wavelengths = [3543., 4770., 6231., 7625., 9134.] #THESE SHOULD NOT BE HARDCODED
 base = 2
 
 class RandomWalk:
@@ -321,35 +321,3 @@ def temp_ln(pars, mags, times, bands, sigmas, default_pars,
                                            base),
                                 default_pars[0:5])
     return tempObj.mc_ln_prob(pars, mags, times, bands, sigmas)
-
-
-def run_mcmc(quasar_data, num_steps, default, onofflist,
-             pool, nwalkers=16):
-    mags, times, bands, sigmas, bad = quasar_data.get_data()
-    bandnames = quasar_data.get_bandlist()
-
-    params = np.array(default[5:])
-    params = params[np.array(onofflist)]
-    p0 = np.concatenate([default[:5], params])
-
-    qv = QuasarVariability(
-        RandomWalk(default[5:], onofflist,
-                   wavelengths, base), default[:5])
-
-    labels = qv.get_labels()
-    ndim = len(labels)
-    labels.append('ln_prob')
-
-    #p0 = qv.pack_pars()
-
-    initial = []
-    for i in range(nwalkers):  # could probably be improved -mykytyn
-        pp = p0 + 0.0001 * np.random.normal(size=len(p0))  # Magic number
-        initial.append(pp)
-    arguments = [mags, times, bands, sigmas, default, onofflist]
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, temp_ln,
-                                    args=arguments, pool=pool)
-
-    pos, prob, state = sampler.run_mcmc(initial, num_steps)
-
-    return sampler, labels, pos, prob, state

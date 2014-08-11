@@ -9,10 +9,11 @@ import triangle
 def make_triangle_plot(sampler, labels):
     lnprob = sampler.lnprobability.flatten()
     trichain = np.column_stack((sampler.flatchain, lnprob))
+    print trichain[:,5:].shape
     extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
                     x in np.hsplit(trichain, trichain.shape[1])])
     extents.append([np.min(lnprob[np.isfinite(lnprob)]), np.max(lnprob)])
-    return triangle.corner(trichain, labels=labels, extents=extents)
+    return triangle.corner(trichain[:,5:], labels=labels[5:], extents=extents[5:])
 
 
 def get_best_lnprob(sampler):
@@ -37,6 +38,8 @@ def make_walker_plots(sampler, labels, nwalkers):
     return plots
 
 
+
+#I think all of these functions will be replaced by a general optimizer soon
 def make_band_time_grid(inittime, finaltime, dt, bandlist):
     """
     Inputs: inittime: start of grid
@@ -257,7 +260,7 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
     dt = 1.0
     initial_time = np.min(totaltimes)-25
     final_time = np.max(totaltimes)+25
-
+    print "MAKING TIME GRID"
     timegrid, bandsgrid = make_band_time_grid(initial_time,
                                               final_time, dt,
                                               bandlist)
@@ -266,7 +269,7 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
         mask = [totalbands == i]
         medians.append(np.median(totalmags[mask]))
 
-    
+    print "CALCULATING PMEAN AND VPP"
     pmean, Vpp = quasar.get_conditional_mean_and_variance(timegrid, bandsgrid,
                                                           totalmags, totaltimes,
                                                           totalbands, totalsigmas)
@@ -284,7 +287,9 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
         deltalns = deltalns-mindeltalns
         maxdeltalns = np.max(deltalns)
 
+    print "GETTING CONDITIONAL SAMPLES"
     for i in range(num_samps):
+        print "SAMPLE {}".format(i)
         maggrid = quasar.get_conditional_sample(timegrid, bandsgrid,
                                                    totalmags, totaltimes, totalbands,
                                                    totalsigmas)
@@ -294,9 +299,10 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
     for i in range(5):
         ax = fig.add_subplot(511 + i)
         ax.label_outer()
+        ax.set_xlim(initial_time, final_time)
+        ax.set_ylabel('%s' % bandlist[i])
         maskgrid = [bandsgrid == i]
         mags, times, bands, sigmas, bad = quasar_data.get_data(bandname = bandlist[i])
-        print sigmas.shape
         if deltalns is not None:
             colors = [str(1-x/maxdeltalns) for x in deltalns]
         else:
@@ -315,30 +321,27 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
         ax.set_ylim(medians[i] - .75, medians[i] + .75)
     return fig
 
-def make_data_plots(obj):
+def make_data_plots(quasar_data):
     fig = plt.figure()
     fig.subplots_adjust(hspace=0, top=.95)
     matplotlib.rc('xtick', labelsize=8)
     matplotlib.rc('ytick', labelsize=8)
 
-    times = obj.get_times()
+    times = quasar_data.get_times()
     start = np.min(times)-50.
     end = np.max(times)+50.
-    bandlist = obj.get_bandlist()
+    bandlist = quasar_data.get_bandlist()
 
     for i in range(5):
-        mags, times, bands, sigmas, bad = obj.get_data(bandname = bandlist[i], include_bad=True)
+        mags, times, bands, sigmas, bad = quasar_data.get_data(bandname = bandlist[i])
         ax = fig.add_subplot(511 + i)
         ax.label_outer()
         ax.set_xlim(start, end)
         ax.set_ylabel('%s' % bandlist[i])
-        good = np.logical_not(bad)
-        ax.errorbar(times[good], mags[good], yerr=sigmas[good],
-                     linestyle='none', color='black', marker='.')
-        if np.any(bad):
-            ax.errorbar(times[bad], mags[bad], yerr=sigmas[bad],
-                         linestyle='none', color='red', marker='.')
-        ax.set_ylim(np.median(mags)-.75,np.median(mags)+.75)
+        median = np.median(mags)
+        colors = ['black']*len(mags)
+        plot_points(ax, mags, times, sigmas, colors, median)
+        ax.set_ylim(median-.75,median+.75)
 
     return fig
 
@@ -376,3 +379,21 @@ def mock_panstarrs(obj, time_step):
         new_sigmas.append(mask_sigmas[samp])
         new_bands.append(mask_bands[samp])
     return new_mags, new_times, new_sigmas, new_bands
+
+
+def calc_delta_ln(bestparams, quasar_data, default, onofflist):
+    """
+    Might not be needed anymore, might not work, do not use
+    """
+    oldtimes = quasar_data.get_times(bandname='r')
+    oldbad = quasar_data.get_bad_mask()
+    deltalns = []
+    for time in oldtimes:
+        quasar_data.remove_point(time)
+        mags, times, bands, sigmas, bads = quasar_data.get_data()
+        deltaln = qv.temp_ln(bestparams, mags, times, bands, sigmas, default, onofflist)-bestprob
+        print deltaln
+        deltalns.append(deltaln)
+        print len(deltalns)
+        quasar_data.bad = oldbad
+    
