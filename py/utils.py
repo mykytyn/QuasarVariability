@@ -6,9 +6,12 @@ import triangle
 
 
 
-def make_triangle_plot(sampler, labels):
-    lnprob = sampler.lnprobability.flatten()
-    trichain = np.column_stack((sampler.flatchain, lnprob))
+def make_triangle_plot(lnprobability, flatchain, labels):
+    """
+    NOTES: MAKE THIS NOT MAGIC
+    """
+    lnprob = lnprobability.flatten()
+    trichain = np.column_stack((flatchain, lnprob))
     print trichain[:,5:].shape
     extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
                     x in np.hsplit(trichain, trichain.shape[1])])
@@ -17,11 +20,19 @@ def make_triangle_plot(sampler, labels):
 
 
 def get_best_lnprob(sampler):
+    """
+    Gets the highest lnprob from a sampler chain
+    TODO: make it not depend on an actual sampler object
+    """
     highln = np.argmax(sampler.lnprobability)
     return sampler.flatchain[highln], sampler.lnprobability.flatten()[highln]
 
 
 def make_walker_plots(sampler, labels, nwalkers):
+    """
+    Creates MCMC walker plots for each parameter
+    TODO: make not depend on an actual sampler object
+    """
     plots = []
     for j, par in enumerate(labels):
         fig = plt.figure()
@@ -39,7 +50,7 @@ def make_walker_plots(sampler, labels, nwalkers):
 
 
 
-#I think all of these functions will be replaced by a general optimizer soon
+
 def make_band_time_grid(inittime, finaltime, dt, bandlist):
     """
     Inputs: inittime: start of grid
@@ -71,7 +82,7 @@ def ln_1d_gauss(x, m, sigmasqr):
     A = 1. / np.sqrt(sigmasqr * 2 * np.pi)
     return np.log(A)-(1 / 2.) * (x - m) ** 2 / sigmasqr
 
-
+#I think all of these functions will be replaced by a general optimizer soon - might even be incorrect
 def ln_likelihood(r, sr2, mean_r, sr2_meanr):
     """
     Inputs: r is the r magnitude
@@ -196,7 +207,7 @@ def grid_search_obj_all(obj, grid=None):
 def plot_points(ax, mags, times, errors, colors, median):
     #put in **kwargs
     for m, t, e, c in zip(mags, times, errors, colors):
-        if np.abs(m-median)<.75:
+        if np.abs(m-median)<.75: #MAGIC
             ax.errorbar(t, m, yerr=e, ecolor=c, linestyle='none', color=c, marker='.', alpha=.75)
         elif m-median>.75:
             ax.errorbar(t,median+.7, ecolor=c, linestyle='none', color=c, marker='^', alpha=.75)
@@ -247,7 +258,7 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
             maggrid = maggrids[j]
             ax.plot(btimegrid, maggrid[mask], 'k-', alpha=0.25)
         ax.set_ylabel('%s' % bandslist[i])
-        ax.set_ylim(means[i] - .75, means[i] + .75)
+        ax.set_ylim(means[i] - .75, means[i] + .75) #MAGIC
     return fig
 
 def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
@@ -257,6 +268,7 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
             deltalns: changes to lnprob for each set of points
             num_samps (optional) number of samples to plot
     """
+
     bands_dict = quasar_data.get_banddict()
     totalmags, totaltimes, totalbands, totalsigmas, totalbad = quasar_data.get_data()
     bandsname = quasar_data.get_bandnames()
@@ -265,7 +277,6 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
     dt = 1.0
     initial_time = np.min(totaltimes)-25
     final_time = np.max(totaltimes)+25
-    print "MAKING TIME GRID"
     timegrid, bandsgrid = make_band_time_grid(initial_time,
                                               final_time, dt,
                                               bandlist)
@@ -274,7 +285,6 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
         mask = [totalbands == i]
         medians.append(np.median(totalmags[mask]))
 
-    print "CALCULATING PMEAN AND VPP"
     pmean, Vpp = quasar.get_conditional_mean_and_variance(timegrid, bandsgrid,
                                                           totalmags, totaltimes,
                                                           totalbands, totalsigmas)
@@ -292,9 +302,7 @@ def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
         deltalns = deltalns-mindeltalns
         maxdeltalns = np.max(deltalns)
 
-    print "GETTING CONDITIONAL SAMPLES"
     for i in range(num_samps):
-        print "SAMPLE {}".format(i)
         maggrid = quasar.get_conditional_sample(timegrid, bandsgrid,
                                                    totalmags, totaltimes, totalbands,
                                                    totalsigmas)

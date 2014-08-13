@@ -100,7 +100,7 @@ def triangle_and_walker(sampler, labels, path, prefix, nwalkers):
     Generates and saves the triangle and walker plots for the outcome of an mcmc process
     """
     print "triangle plot"
-    utils.make_triangle_plot(sampler, labels).savefig('{}/{}-triangle.png'.format(path, prefix))
+    utils.make_triangle_plot(sampler.lnprobability, sampler.flatchain, labels).savefig('{}/{}-triangle.png'.format(path, prefix))
     #print "walker plots"
     #walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
     #for par,plot in zip(labels,walker_plots):
@@ -134,49 +134,51 @@ def run_irls(quasar, quasar_data, Q=5, num_samps=0, repeats=5):
         print "UPDATING SIGMAS {}".format(i)
         quasar_data.IRLS_update_sigmas(quasar, Q=Q)
 
+def main_sequence(obj, prefix, path):
+    #path = '{}/{}'.format(path,obj)
+    print path, prefix
+    try:
+        os.mkdir(path)
+    except:
+        pass
+    quasar_data = data.Stripe82(obj)
+    utils.make_data_plots(quasar_data).savefig('{}/{}-data.png'.format(path, prefix))
+
+    default = make_default(quasar_data)
+    
+    quasar = qv.QuasarVariability(qv.RandomWalk(default[5:], onofflist, qv.wavelengths, qv.base), default[0:5])
+    utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-orig-posterior.png'.format(path,prefix))
+    run_irls(quasar,quasar_data, Q=1., repeats=10)
+    utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-final-posterior.png'.format(path,prefix))
+    
+    sampler, labels, initial = initialize_mcmc(quasar_data, default, onofflist, pool, nwalkers, quasar=None)
+    pos, prob, state = burn_in(sampler, num_steps, initial)
+    pos, prob, state = main_mcmc(sampler, pos, stepsize, acorsteps, maxcount)
+    triangle_and_walker(sampler, labels, path, prefix, nwalkers)
+    bestparams, bestprob = utils.get_best_lnprob(sampler)
+    quasar.unpack_pars(bestparams)
+    f = open("{}.pickle".format(obj),'w')
+    cPickle.dump([quasar, quasar_data, sampler.flatchain, sampler.lnprobability, labels], f)
+    f.close()
+    print bestparams
+    utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-postfit-posterior.png'.format(path,prefix))
+
+
 if __name__== '__main__':
     pool = Pool(10)
     #pool = None
     #a_r, alpha, tau, delta_r, gamma, S
-    onofflist = [True, True, True, True, False, False]
+    onofflist = [True, True, True, False, False, False]
     num_steps = 2048
     nwalkers = 32
-    prefix = 'test'
     stepsize = 256
     maxcount = 50
     acorsteps = 64
     f = open('newtargetlist.txt', 'r')
-        
     for numobj,obj in enumerate(f):
-        prefix = 'test'
-        assert numobj < 16
-        print numobj, obj
+        prefix = obj
+        if numobj < 31:
+            continue
         obj = int(obj)
-        path = '/home/dwm261/public_html/Quasars/refactoring/{}'.format(obj)
-        print path
-        try:
-            os.mkdir(path)
-        except:
-            pass
-
-        quasar_data = data.Stripe82(obj)
-        utils.make_data_plots(quasar_data).savefig('{}/{}-data.png'.format(path, prefix))
-
-        default = make_default(quasar_data)
-
-        quasar = qv.QuasarVariability(qv.RandomWalk(default[5:], onofflist, qv.wavelengths, qv.base), default[0:5])
-        utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-orig-posterior.png'.format(path,prefix))
-        run_irls(quasar,quasar_data, Q=1., repeats=10)
-        utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-final-posterior.png'.format(path,prefix))
-
-        sampler, labels, initial = initialize_mcmc(quasar_data, default, onofflist, pool, nwalkers, quasar=None)
-        pos, prob, state = burn_in(sampler, num_steps, initial)
-        pos, prob, state = main_mcmc(sampler, pos, stepsize, acorsteps, maxcount)
-        triangle_and_walker(sampler, labels, path, prefix, nwalkers)
-        bestparams, bestprob = utils.get_best_lnprob(sampler)
-        quasar.unpack_pars(bestparams)
-        f = open("{}.pickle".format(obj),'w')
-        cPickle.dump([quasar, sampler.flatchain, sampler.lnprobability, labels], f)
-        f.close()
-        print bestparams
-        utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-postfit-posterior.png'.format(path,prefix))
+        path = '/home/dwm261/public_html/Quasars/sample'
+        main_sequence(obj, prefix, path)
