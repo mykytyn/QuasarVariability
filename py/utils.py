@@ -258,7 +258,7 @@ def make_prior_plots(quasarobj, timegrid, bands, pmean, psig, means, bandslist,
             maggrid = maggrids[j]
             ax.plot(btimegrid, maggrid[mask], 'k-', alpha=0.25)
         ax.set_ylabel('%s' % bandslist[i])
-        ax.set_ylim(means[i] - .75, means[i] + .75) #MAGIC
+        ax.set_ylim(means[i] - .75, means[i] + .75) #MAGIC
     return fig
 
 def make_posterior_plots(quasar, quasar_data, deltalns=None, num_samps=8):
