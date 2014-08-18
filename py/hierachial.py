@@ -1,17 +1,12 @@
 import cPickle
 import numpy as np
 from scipy.optimize import leastsq
-import scipy
+from scipy.misc import logsumexp
 import matplotlib
 matplotlib.use('Agg')
 import utils
 
 
-def main():
-    f = open('newtargetlist.txt', 'r')
-    targets = [int(x) for x in f]
-    print lnprob(targets, 300., 50.)
-    f.close()
 
 
 def importance_sample_one(objid, tau_mean, tau_variance):
@@ -25,8 +20,7 @@ def importance_sample_one(objid, tau_mean, tau_variance):
     quasar, quasar_data, flatchain, lnprobability, labels = cPickle.load(g)
     taus = np.exp(flatchain[:, 7])
     g.close()
-    return np.log(np.sum(np.exp(utils.ln_1d_gauss(taus,
-                                                  tau_mean, tau_variance))))
+    return logsumexp(utils.ln_1d_gauss(taus, tau_mean, tau_variance))
 
 
 def importance_sample_all(targlist, tau_mean, tau_variance):
@@ -90,6 +84,14 @@ def make_large_triangle_plot():
     print hugelnprobability.shape
     utils.make_triangle_plot(hugelnprobability,
                              hugeflatchain, labels).savefig('hugetriangle.png')
+
+def main():
+    f = open('newtargetlist.txt', 'r')
+    targets = [int(x) for x in f]
+    print ln_prob(targets, 300., 50.)
+    f.close()
+
+
 
 if __name__ == '__main__':
     main()
