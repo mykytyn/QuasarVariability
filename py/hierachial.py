@@ -4,26 +4,36 @@ from scipy.optimize import leastsq
 from scipy.misc import logsumexp
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import utils
 
+def retrieve_tau_data(objids):
+    """
+    so as to save time
+    since unpickling is slow
+    lets load all data
+    """
+
+    alltaus = []
+    for objid in objids:
+        g = open("{}.pickle".format(objid))
+        quasar, quasar_data, flatchain, lprobability, labels = cPickle.load(g)
+        alltaus.append(np.exp(flatchain[:, 7]))
+        g.close()
+    return alltaus
 
 
-
-def importance_sample_one(objid, tau_mean, tau_variance):
+def importance_sample_one(objid, taus, tau_mean, tau_variance):
     """
     takes in one id
     and also mean and sigma
     gives importance samp
     """
 
-    g = open("{}.pickle".format(objid))
-    quasar, quasar_data, flatchain, lnprobability, labels = cPickle.load(g)
-    taus = np.exp(flatchain[:, 7])
-    g.close()
     return logsumexp(utils.ln_1d_gauss(taus, tau_mean, tau_variance))
 
 
-def importance_sample_all(targlist, tau_mean, tau_variance):
+def importance_sample_all(targlist, taus, tau_mean, tau_variance):
     """
     takes an id list
     and also mean and sigma
@@ -31,8 +41,8 @@ def importance_sample_all(targlist, tau_mean, tau_variance):
     """
 
     total = 0
-    for targ in targlist:
-        total += importance_sample_one(targ, tau_mean, tau_variance)
+    for targ, tau in zip(targlist, taus):
+        total += importance_sample_one(targ, tau, tau_mean, tau_variance)
     return total
 
 
@@ -46,7 +56,7 @@ def ln_prior(tau_mean, tau_variance):
     return 0
 
 
-def ln_prob(targets, tau_mean, tau_variance):
+def ln_prob(targets, taus, tau_mean, tau_variance):
     """
     this takes a targ list
     and hyperparameters
@@ -56,7 +66,7 @@ def ln_prob(targets, tau_mean, tau_variance):
     prior = ln_prior(tau_mean, tau_variance)
     if np.isinf(prior):
         return -np.inf
-    return prior + importance_sample_all(targets, tau_mean, tau_variance)
+    return prior + importance_sample_all(targets, taus, tau_mean, tau_variance)
 
 
 def make_large_triangle_plot():
@@ -88,10 +98,19 @@ def make_large_triangle_plot():
 def main():
     f = open('newtargetlist.txt', 'r')
     targets = [int(x) for x in f]
-    print ln_prob(targets, 300., 50.)
     f.close()
+    taus = retrieve_tau_data(targets)
+    tau_variances = np.arange(1, 300, 1.)
+    ln_probs = []
+    for x in tau_variances:
+        ln_probs.append(ln_prob(targets, taus, 200, x))
+    plt.plot(tau_variances, ln_probs, '+')
+    plt.xlabel('Tau Variance')
+    plt.ylabel('Ln Prob')
+    plt.savefig('newsample2.png')
 
 
 
 if __name__ == '__main__':
     main()
+
