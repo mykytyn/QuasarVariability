@@ -6,10 +6,19 @@ import triangle
 
 
 
-def make_triangle_plot(lnprobability, flatchain, labels):
+def make_triangle_plot(lnprobability, flatchain, labels, temp=False):
     """
     NOTES: MAKE THIS NOT MAGIC
     """
+    if temp:
+        lnprob = lnprobability.flatten()
+        trichain = np.column_stack((flatchain, lnprob))
+        print trichain.shape
+        extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
+                        x in np.hsplit(trichain, trichain.shape[1])])
+        extents.append([np.min(lnprob[np.isfinite(lnprob)]), np.max(lnprob)])
+        return triangle.corner(trichain, labels=labels, extents=extents)
+
     lnprob = lnprobability.flatten()
     trichain = np.column_stack((flatchain, lnprob))
     print trichain[:,5:].shape
