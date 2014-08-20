@@ -6,6 +6,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import utils
+import cProfile
+import re
+import emcee
+from multiprocessing import Pool
 
 def retrieve_tau_data(objids):
     """
@@ -23,7 +27,7 @@ def retrieve_tau_data(objids):
     return alltaus
 
 
-def importance_sample_one(objid, taus, tau_mean, tau_variance):
+def importance_sample_one(taus, tau_mean, tau_variance):
     """
     takes in one id
     and also mean and sigma
@@ -33,7 +37,7 @@ def importance_sample_one(objid, taus, tau_mean, tau_variance):
     return logsumexp(utils.ln_1d_gauss(taus, tau_mean, tau_variance))
 
 
-def importance_sample_all(targlist, taus, tau_mean, tau_variance):
+def importance_sample_all(taus, tau_mean, tau_variance):
     """
     takes an id list
     and also mean and sigma
@@ -41,8 +45,8 @@ def importance_sample_all(targlist, taus, tau_mean, tau_variance):
     """
 
     total = 0
-    for targ, tau in zip(targlist, taus):
-        total += importance_sample_one(targ, tau, tau_mean, tau_variance)
+    for tau in taus:
+        total += importance_sample_one(tau, tau_mean, tau_variance)
     return total
 
 
@@ -53,20 +57,22 @@ def ln_prior(tau_mean, tau_variance):
     should cut small sigma
     """
 
-    return 0
+    if tau_variance > 0:
+        return 0
+    return -np.inf
 
-
-def ln_prob(targets, taus, tau_mean, tau_variance):
+def ln_prob(pars, taus):
     """
     this takes a targ list
     and hyperparameters
     and gives the ln prob
     """
-
+    
+    tau_mean, tau_variance = pars
     prior = ln_prior(tau_mean, tau_variance)
     if np.isinf(prior):
         return -np.inf
-    return prior + importance_sample_all(targets, taus, tau_mean, tau_variance)
+    return prior + importance_sample_all(taus, tau_mean, tau_variance)
 
 
 def make_large_triangle_plot():
@@ -97,29 +103,30 @@ def make_large_triangle_plot():
 
 def main():
     f = open('newtargetlist.txt', 'r')
+    prefix = 'first'
     targets = [int(x) for x in f]
     f.close()
     taus = retrieve_tau_data(targets)
-    tau_means = np.arange(-1., 10., .1)
-    ln_probs = []
-    for x in tau_means:
-        ln_probs.append(ln_prob(targets, taus, x, 2.))
-    plt.plot(tau_means, ln_probs, '+')
-    plt.xlabel('Ln Tau Mean')
-    plt.ylabel('Ln Prob')
-    plt.ylim(np.max(ln_probs)-110.,np.max(ln_probs)+110)
-    plt.savefig('mean.png')
+    nwalkers = 8
+    ndim = 2
+    num_steps = 512
+    pool = Pool(10)
+    arguments = [taus,]
+    labels = ['tau_mean', 'tau_variance', 'ln_prob']
+    p0 = [5., 2.]
+    initial = []
+    for i in range(nwalkers):
+        pp = p0 + .0001 * np.random.normal(size=len(p0))
+        initial.append(pp)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_prob, args=arguments, pool=pool)
+    pos, prob, state = sampler.run_mcmc(initial, num_steps)
+    print "triangle plot"
+    utils.make_triangle_plot(sampler.lnprobability, sampler.flatchain, labels, temp=True).savefig('{}-triangle.png'.format(prefix))
+    print "walker plots"
+    walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
+    for par,plot in zip(labels,walker_plots):
+        plot.savefig('{}-walker-{}.png'.format(prefix, par))
     plt.clf()
-    tau_variances = np.arange(.1, 10, .1)
-    ln_probs = []
-    for x in tau_variances:
-        ln_probs.append(ln_prob(targets, taus, 5., x))
-    plt.plot(tau_variances, ln_probs, '+')
-    plt.xlabel('Ln Tau Variance')
-    plt.ylabel('Ln Prob')
-    plt.ylim(np.max(ln_probs)-110.,np.max(ln_probs)+110)
-    plt.savefig('variance.png')
-
 
 
 if __name__ == '__main__':
