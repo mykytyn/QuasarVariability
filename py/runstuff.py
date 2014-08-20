@@ -174,11 +174,11 @@ if __name__== '__main__':
     stepsize = 256
     maxcount = 50
     acorsteps = 64
-    f = open('newtargetlist.txt', 'r')
+    f = open('256sample.txt', 'r')
     for numobj,obj in enumerate(f):
         prefix = obj
-        if numobj < 31:
-            continue
         obj = int(obj)
-        path = '/home/dwm261/public_html/Quasars/sample'
+        if os.path.exists('{}.pickle'.format(obj)):
+            continue
+        path = '/home/dwm261/public_html/Quasars/256sample'
         main_sequence(obj, prefix, path)

@@ -18,7 +18,7 @@ def retrieve_tau_data(objids):
     for objid in objids:
         g = open("{}.pickle".format(objid))
         quasar, quasar_data, flatchain, lprobability, labels = cPickle.load(g)
-        alltaus.append(np.exp(flatchain[:, 7]))
+        alltaus.append(flatchain[:, 7])
         g.close()
     return alltaus
 
@@ -100,14 +100,25 @@ def main():
     targets = [int(x) for x in f]
     f.close()
     taus = retrieve_tau_data(targets)
-    tau_variances = np.arange(1, 300, 1.)
+    tau_means = np.arange(-1., 10., .1)
+    ln_probs = []
+    for x in tau_means:
+        ln_probs.append(ln_prob(targets, taus, x, 2.))
+    plt.plot(tau_means, ln_probs, '+')
+    plt.xlabel('Ln Tau Mean')
+    plt.ylabel('Ln Prob')
+    plt.ylim(np.max(ln_probs)-110.,np.max(ln_probs)+110)
+    plt.savefig('mean.png')
+    plt.clf()
+    tau_variances = np.arange(.1, 10, .1)
     ln_probs = []
     for x in tau_variances:
-        ln_probs.append(ln_prob(targets, taus, 200, x))
+        ln_probs.append(ln_prob(targets, taus, 5., x))
     plt.plot(tau_variances, ln_probs, '+')
-    plt.xlabel('Tau Variance')
+    plt.xlabel('Ln Tau Variance')
     plt.ylabel('Ln Prob')
-    plt.savefig('newsample2.png')
+    plt.ylim(np.max(ln_probs)-110.,np.max(ln_probs)+110)
+    plt.savefig('variance.png')
 
 
 
