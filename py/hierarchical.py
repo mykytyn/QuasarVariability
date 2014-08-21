@@ -22,7 +22,9 @@ def retrieve_tau_data(objids):
     for objid in objids:
         g = open("{}.pickle".format(objid))
         quasar, quasar_data, flatchain, lprobability, labels = cPickle.load(g)
-        alltaus.append(flatchain[:, 7])
+        taus = flatchain[:,7]
+        np.random.shuffle(taus)
+        alltaus.append(taus[:1024])
         g.close()
     return alltaus
 
