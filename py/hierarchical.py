@@ -20,11 +20,12 @@ def retrieve_tau_data(objids):
 
     alltaus = []
     for objid in objids:
-        g = open("{}.pickle".format(objid))
+        g = open("50tau-{}.pickle".format(objid))
         quasar, quasar_data, flatchain, lprobability, labels = cPickle.load(g)
         taus = flatchain[:,7]
         np.random.shuffle(taus)
-        alltaus.append(taus[:1024])
+        taus = taus[:1024]
+        alltaus.append(taus)
         g.close()
     return alltaus
 
@@ -105,7 +106,7 @@ def make_large_triangle_plot():
 
 def main():
     f = open('newtargetlist.txt', 'r')
-    prefix = 'first'
+    prefix = 'new50tau'
     targets = [int(x) for x in f]
     f.close()
     taus = retrieve_tau_data(targets)
@@ -114,7 +115,7 @@ def main():
     num_steps = 512
     pool = Pool(10)
     arguments = [taus,]
-    labels = ['tau_mean', 'tau_variance', 'ln_prob']
+    labels = ['ln_tau_mean', 'ln_tau_variance', 'ln_prob']
     p0 = [5., 2.]
     initial = []
     for i in range(nwalkers):
@@ -128,6 +129,8 @@ def main():
     walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
     for par,plot in zip(labels,walker_plots):
         plot.savefig('{}-walker-{}.png'.format(prefix, par))
+    print "sampler acor"
+    print sampler.acor
     plt.clf()
 
 

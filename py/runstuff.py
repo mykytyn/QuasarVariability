@@ -12,7 +12,7 @@ import emcee
 import cPickle
 
 
-def make_default(quasar_data):
+def make_default(quasar_data, init_tau = 100.):
     """
     Generates default parameters for start of MCMC and for IRLS
     todo: make these adjustable and less magic perhaps?
@@ -23,7 +23,6 @@ def make_default(quasar_data):
         default.append(np.median(quasar_data.get_mags(bandname=b)))
     init_amp = .2 #magic start guess for amp
     init_alpha = -1 #magic start guess for alpha
-    init_tau = 100 #magic start guess for tau (days)
     init_delta_r = 0.
     init_gamma = 1.
     init_S = 0.
@@ -134,7 +133,7 @@ def run_irls(quasar, quasar_data, Q=5, num_samps=0, repeats=5):
         print "UPDATING SIGMAS {}".format(i)
         quasar_data.IRLS_update_sigmas(quasar, Q=Q)
 
-def main_sequence(obj, prefix, path):
+def main_sequence(obj, prefix, path, init_tau):
     #path = '{}/{}'.format(path,obj)
     print path, prefix
     try:
@@ -144,7 +143,7 @@ def main_sequence(obj, prefix, path):
     quasar_data = data.Stripe82(obj)
     utils.make_data_plots(quasar_data).savefig('{}/{}-data.png'.format(path, prefix))
 
-    default = make_default(quasar_data)
+    default = make_default(quasar_data,init_tau=init_tau)
     
     quasar = qv.QuasarVariability(qv.RandomWalk(default[5:], onofflist, qv.wavelengths, qv.base), default[0:5])
     utils.make_posterior_plots(quasar, quasar_data, num_samps=0).savefig('{}/{}-1-orig-posterior.png'.format(path,prefix))
@@ -157,7 +156,7 @@ def main_sequence(obj, prefix, path):
     triangle_and_walker(sampler, labels, path, prefix, nwalkers)
     bestparams, bestprob = utils.get_best_lnprob(sampler)
     quasar.unpack_pars(bestparams)
-    f = open("{}.pickle".format(obj),'w')
+    f = open("{}.pickle".format(prefix),'w')
     cPickle.dump([quasar, quasar_data, sampler.flatchain, sampler.lnprobability, labels], f)
     f.close()
     print bestparams
@@ -174,11 +173,11 @@ if __name__== '__main__':
     stepsize = 256
     maxcount = 50
     acorsteps = 64
-    f = open('256sample.txt', 'r')
+    f = open('newtargetlist.txt', 'r')
     for numobj,obj in enumerate(f):
-        prefix = obj
         obj = int(obj)
-        if os.path.exists('{}.pickle'.format(obj)):
+        prefix = '50tau-{}'.format(obj)
+        if os.path.exists('{}.pickle'.format(prefix)):
             continue
-        path = '/home/dwm261/public_html/Quasars/256sample'
-        main_sequence(obj, prefix, path)
+        path = '/home/dwm261/public_html/Quasars/50taus/'
+        main_sequence(obj, prefix, path, init_tau=50.)
