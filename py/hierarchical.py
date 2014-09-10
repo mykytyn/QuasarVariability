@@ -30,14 +30,14 @@ def retrieve_tau_data(objids):
     return alltaus
 
 
-def importance_sample_one(taus, tau_mean, tau_variance):
+def importance_sample_one(taus, ln_interim_tau_priors, tau_mean, tau_variance):
     """
     takes in one id
     and also mean and sigma
     gives importance samp
     """
 
-    return logsumexp(utils.ln_1d_gauss(taus, tau_mean, tau_variance))
+    return logsumexp(utils.ln_1d_gauss(taus, tau_mean, tau_variance) - ln_interim_tau_priors)
 
 
 def importance_sample_all(taus, tau_mean, tau_variance):
