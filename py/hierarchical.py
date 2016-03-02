@@ -11,7 +11,7 @@ import re
 import emcee
 from multiprocessing import Pool
 
-def retrieve_tau_data(objids):
+def retrieve_tau_data(objids, fileprefix):
     """
     so as to save time
     since unpickling is slow
@@ -20,7 +20,7 @@ def retrieve_tau_data(objids):
 
     alltaus = []
     for objid in objids:
-        g = open("50tau-{}.pickle".format(objid))
+        g = open("{}-{}.pickle".format(fileprefix, objid))
         quasar, quasar_data, flatchain, lprobability, labels = cPickle.load(g)
         taus = flatchain[:,7]
         np.random.shuffle(taus)
@@ -106,10 +106,10 @@ def make_large_triangle_plot():
 
 def main():
     f = open('newtargetlist.txt', 'r')
-    prefix = 'new50tau'
+    prefix = '100tau-Q2'
     targets = [int(x) for x in f]
     f.close()
-    taus = retrieve_tau_data(targets)
+    taus = retrieve_tau_data(targets,prefix)
     nwalkers = 8
     ndim = 2
     num_steps = 512
@@ -124,11 +124,11 @@ def main():
     sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_prob, args=arguments, pool=pool)
     pos, prob, state = sampler.run_mcmc(initial, num_steps)
     print "triangle plot"
-    utils.make_triangle_plot(sampler.lnprobability, sampler.flatchain, labels, temp=True).savefig('{}-triangle.png'.format(prefix))
+    utils.make_triangle_plot(sampler.lnprobability, sampler.flatchain, labels, temp=True).savefig('hier-{}-triangle.png'.format(prefix))
     print "walker plots"
     walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
     for par,plot in zip(labels,walker_plots):
-        plot.savefig('{}-walker-{}.png'.format(prefix, par))
+        plot.savefig('hier-{}-walker-{}.png'.format(prefix, par))
     print "sampler acor"
     print sampler.acor
     plt.clf()
