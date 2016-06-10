@@ -122,8 +122,11 @@ def main():
     nwalkers = 8
     ndim = 2
     num_steps = 512
+    stepsize = 256
+    maxcount = 50
+    acorsteps = 64
     pool = Pool(10)
-    arguments = [taus,taupriors]
+    arguments = [taus,taupriors,]
     labels = ['ln_tau_mean', 'ln_tau_variance', 'ln_prob']
     p0 = [5., 2.]
     initial = []
@@ -132,8 +135,22 @@ def main():
         initial.append(pp)
     sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_prob, args=arguments, pool=pool)
     pos, prob, state = sampler.run_mcmc(initial, num_steps)
+    sampler.reset()
+    acors = []
+    count = 0
+
+    pos, prob, state = sampler.run_mcmc(pos, stepsize)
+    count = count+1
+    acors.append(sampler.acor)
+    while stepsize*count < acorsteps*np.median(sampler.acor) and count<maxcount: #this can be better i think
+        print acorsteps*np.median(sampler.acor), stepsize*count
+        acors.append(sampler.acor)
+        count += 1
+        pos, prob, state = sampler.run_mcmc(pos, stepsize)
+
+
     print "triangle plot"
-    utils.make_triangle_plot(sampler.lnprobability, sampler.flatchain, labels, temp=True).savefig('hier-{}-triangle.png'.format(prefix))
+    utils.make_triangle_plot(sampler.lnprobability, sampler.flatchain, labels, temp=True,).savefig('hier-{}-triangle.png'.format(prefix))
     print "walker plots"
     walker_plots = utils.make_walker_plots(sampler, labels, nwalkers)
     for par,plot in zip(labels,walker_plots):
