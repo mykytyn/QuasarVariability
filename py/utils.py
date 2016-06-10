@@ -17,7 +17,7 @@ def make_triangle_plot(lnprobability, flatchain, labels, temp=False):
         extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
                         x in np.hsplit(trichain, trichain.shape[1])])
         extents.append([np.min(lnprob[np.isfinite(lnprob)]), np.max(lnprob)])
-        return triangle.corner(trichain, labels=labels, extents=extents)
+        return triangle.corner(trichain, labels=labels, extents=extents) #TEMP
 
     lnprob = lnprobability.flatten()
     trichain = np.column_stack((flatchain, lnprob))
@@ -25,7 +25,7 @@ def make_triangle_plot(lnprobability, flatchain, labels, temp=False):
     extents = list([[np.min(x[np.isfinite(x)]), np.max(x[np.isfinite(x)])] for
                     x in np.hsplit(trichain, trichain.shape[1])])
     extents.append([np.min(lnprob[np.isfinite(lnprob)]), np.max(lnprob)])
-    return triangle.corner(trichain[:,5:], labels=labels[5:], extents=extents[5:])
+    return triangle.corner(trichain[:,5:], labels=labels[5:], extents=extents[5:])#TEMP
 
 
 def get_best_lnprob(sampler):

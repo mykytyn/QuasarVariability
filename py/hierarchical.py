@@ -11,6 +11,12 @@ import re
 import emcee
 from multiprocessing import Pool
 
+def tau_prior (tau):
+    """
+    This should be saved! Temp!
+    """
+    return utils.ln_1d_gauss(tau, 6., 2.)
+
 def retrieve_tau_data(objids, fileprefix):
     """
     so as to save time
@@ -19,15 +25,18 @@ def retrieve_tau_data(objids, fileprefix):
     """
 
     alltaus = []
+    allpriors = []
     for objid in objids:
         g = open("{}-{}.pickle".format(fileprefix, objid))
         quasar, quasar_data, flatchain, lprobability, labels = cPickle.load(g)
         taus = flatchain[:,7]
         np.random.shuffle(taus)
         taus = taus[:1024]
+        taupriors = tau_prior(taus)
         alltaus.append(taus)
+        allpriors.append(taupriors)
         g.close()
-    return alltaus
+    return alltaus, allpriors
 
 
 def importance_sample_one(taus, ln_interim_tau_priors, tau_mean, tau_variance):
@@ -40,7 +49,7 @@ def importance_sample_one(taus, ln_interim_tau_priors, tau_mean, tau_variance):
     return logsumexp(utils.ln_1d_gauss(taus, tau_mean, tau_variance) - ln_interim_tau_priors)
 
 
-def importance_sample_all(taus, tau_mean, tau_variance):
+def importance_sample_all(taus, priors, tau_mean, tau_variance):
     """
     takes an id list
     and also mean and sigma
@@ -48,8 +57,8 @@ def importance_sample_all(taus, tau_mean, tau_variance):
     """
 
     total = 0
-    for tau in taus:
-        total += importance_sample_one(tau, tau_mean, tau_variance)
+    for tau, prior in zip(taus,priors):
+        total += importance_sample_one(tau, prior, tau_mean, tau_variance)
     return total
 
 
@@ -64,7 +73,7 @@ def ln_prior(tau_mean, tau_variance):
         return 0
     return -np.inf
 
-def ln_prob(pars, taus):
+def ln_prob(pars, taus, taupriors):
     """
     this takes a targ list
     and hyperparameters
@@ -75,7 +84,7 @@ def ln_prob(pars, taus):
     prior = ln_prior(tau_mean, tau_variance)
     if np.isinf(prior):
         return -np.inf
-    return prior + importance_sample_all(taus, tau_mean, tau_variance)
+    return prior + importance_sample_all(taus, taupriors, tau_mean, tau_variance)
 
 
 def make_large_triangle_plot():
@@ -109,12 +118,12 @@ def main():
     prefix = '100tau-Q2'
     targets = [int(x) for x in f]
     f.close()
-    taus = retrieve_tau_data(targets,prefix)
+    taus, taupriors = retrieve_tau_data(targets,prefix)
     nwalkers = 8
     ndim = 2
     num_steps = 512
     pool = Pool(10)
-    arguments = [taus,]
+    arguments = [taus,taupriors]
     labels = ['ln_tau_mean', 'ln_tau_variance', 'ln_prob']
     p0 = [5., 2.]
     initial = []

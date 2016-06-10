@@ -12,9 +12,12 @@ obj = int(f.next())
 
 quasar_data = data.Stripe82(obj)
 
-new_data = quasar_data.get_data(bandname='r')
+new_data = quasar_data.get_data()
 
-qkernel = .68*george.kernels.ExpKernel(1/50.)
+
+#.68 is amplitude hyperparameter a_r
+#.02 is tau hyperparameter
+qkernel = .68*george.kernels.ExpKernel(.02)
 
 mags = new_data[0]
 times = np.log(new_data[1])
@@ -41,10 +44,11 @@ print gp.lnlikelihood(mags)
 
 p0 = gp.kernel.vector
 results = op.minimize(nll, p0, jac=grad_nll)
+print results
 print np.exp(results.x)
-gp.kernel[:] = results.x
+gp.kernel[:] = np.exp(results.x)
 gp.compute(times, yerr = mag_errors)
-print gp.lnlikelihood(mags)
+
 
 
 plt.errorbar(times,mags,yerr=mag_errors,fmt='+')
@@ -57,6 +61,9 @@ print time_grid
 print predict_mean
 
 plt.plot(time_grid, predict_mean, '-')
+plt.plot(time_grid, predict_mean-np.sqrt(np.diag(cov)), 'r--')
+plt.plot(time_grid, predict_mean+np.sqrt(np.diag(cov)), 'r--')
+
 
 for i in range(5):
     plt.plot(time_grid, gp.sample_conditional(mags, time_grid), alpha=.1)
